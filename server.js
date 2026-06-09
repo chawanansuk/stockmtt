@@ -9,6 +9,11 @@ import { extractFromImage } from './lib/claude.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json({ limit: '25mb' }));
+
+// เสิร์ฟ manifest ด้วย content-type ที่ถูกต้อง ก่อนไฟล์ static อื่น ๆ
+app.get('/manifest.webmanifest', (req, res) =>
+  res.type('application/manifest+json').sendFile(path.join(__dirname, 'public', 'manifest.webmanifest'))
+);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ตัวช่วยจับ error ใน async route

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ตัดสต๊อกสินค้า</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>📦 ตัดสต๊อกสินค้า</h1>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="deduct">ตัดสต๊อก</button>
+    <button class="tab" data-tab="stock">สต๊อก</button>
+    <button class="tab" data-tab="history">ประวัติ</button>
+  </nav>
+
+  <main>
+    <!-- ===== ตัดสต๊อกจากรูป ===== -->
+    <section id="tab-deduct" class="panel active">
+      <div class="card">
+        <label class="photo-btn">
+          📷 ถ่ายรูป / เลือกรูปใบเบิก
+          <input type="file" id="photo" accept="image/*" capture="environment" hidden />
+        </label>
+        <img id="preview" class="preview" alt="" hidden />
+        <button id="btn-extract" class="primary" hidden>🔍 อ่านด้วย AI</button>
+        <p id="extract-status" class="status"></p>
+      </div>
+
+      <div id="review" hidden>
+        <div class="review-head">
+          <h2>ตรวจรายการก่อนตัด</h2>
+          <span id="review-date" class="muted"></span>
+        </div>
+        <p class="muted small">AI อ่านได้ตามนี้ — แก้ไขสินค้า/จำนวนได้ก่อนกดยืนยัน</p>
+        <div id="review-list"></div>
+        <button id="btn-add-row" class="ghost">+ เพิ่มรายการเอง</button>
+
+        <label class="field">
+          <span>หมายเหตุ (ไม่บังคับ)</span>
+          <input type="text" id="deduct-note" placeholder="เช่น เบิกหน้าร้าน" />
+        </label>
+
+        <button id="btn-commit" class="primary big">✅ ยืนยันตัดสต๊อก</button>
+      </div>
+
+      <div id="commit-result" class="card success" hidden></div>
+    </section>
+
+    <!-- ===== สต๊อก ===== -->
+    <section id="tab-stock" class="panel">
+      <input type="search" id="stock-search" class="search" placeholder="ค้นหาสินค้า..." />
+      <details class="card add-box">
+        <summary>+ เพิ่มสินค้าใหม่</summary>
+        <label class="field"><span>ชื่อสินค้า</span><input type="text" id="add-name" /></label>
+        <label class="field"><span>หมวด</span><input type="text" id="add-category" /></label>
+        <label class="field"><span>จำนวนเริ่มต้น</span><input type="number" id="add-stock" value="0" /></label>
+        <button id="btn-add-product" class="primary">บันทึกสินค้า</button>
+      </details>
+      <p id="stock-count" class="muted small"></p>
+      <div id="stock-list"></div>
+    </section>
+
+    <!-- ===== ประวัติ ===== -->
+    <section id="tab-history" class="panel">
+      <div id="history-list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "stockmtt",
+  "version": "1.0.0",
+  "description": "ตัดสต๊อกสินค้าจากรูปใบเขียนมือด้วย AI (Claude)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "import": "node scripts/import-xlsx.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

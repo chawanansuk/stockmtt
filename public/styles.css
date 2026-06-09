@@ -252,7 +252,7 @@ select, input[type="text"], input[type="number"], input[type="search"] {
 }
 
 /* ===== ยืนยันตัวตน / login ===== */
-header { position: relative; }
+/* header เดิมเป็น position: sticky อยู่แล้ว (เป็น positioned) ปุ่ม logout จึงเกาะได้ */
 .logout-btn {
   position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
   background: rgba(255, 255, 255, 0.18); color: #fff; border: 1px solid rgba(255, 255, 255, 0.45);
@@ -299,3 +299,15 @@ header { position: relative; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 #stock-sentinel { height: 1px; }
+
+/* ===== ปุ่มล้างฟิลเตอร์ + ปุ่มกลับขึ้นบนสุด ===== */
+.clear-btn {
+  flex: 0 0 auto; background: none; border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 12px; color: var(--muted); font-size: 13px; cursor: pointer;
+}
+.to-top {
+  position: fixed; right: 16px; bottom: 16px; width: 46px; height: 46px;
+  border-radius: 50%; border: none; background: var(--primary); color: #fff;
+  font-size: 22px; line-height: 1; cursor: pointer; z-index: 90;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}

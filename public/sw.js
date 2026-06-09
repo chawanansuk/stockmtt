@@ -1,7 +1,7 @@
 // Service worker ง่าย ๆ: เปิดเร็ว + ใช้งานออฟไลน์ได้บางส่วน
 // - ไฟล์หน้าเว็บ (html/js/css/ไอคอน): network-first เก็บ cache ไว้ใช้ตอนออฟไลน์
 // - /api/*: ปล่อยให้เรียก network ตรง ๆ เสมอ (ข้อมูลสต๊อกต้องสด)
-const CACHE = 'stockmtt-v3';
+const CACHE = 'stockmtt-v4';
 const SHELL = ['/', '/index.html', '/app.js', '/styles.css', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (e) => {

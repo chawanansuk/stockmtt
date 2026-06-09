@@ -8,6 +8,11 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// แตะช่องตัวเลขแล้วเลือกเลขทั้งหมด (พิมพ์ทับได้ทันที) — ครอบคลุมช่องที่สร้างทีหลังด้วย
+document.addEventListener('focusin', (e) => {
+  if (e.target.matches && e.target.matches('input[type="number"]')) e.target.select();
+});
+
 let PRODUCTS = [];
 let MODE = 'deduct'; // 'deduct' = ตัดออก, 'receive' = รับเข้า
 let currentImage = null;
@@ -80,10 +85,19 @@ $$('.tab').forEach((t) =>
     $$('.panel').forEach((x) => x.classList.remove('active'));
     t.classList.add('active');
     $('#tab-' + t.dataset.tab).classList.add('active');
+    try { localStorage.setItem('stockmtt.tab', t.dataset.tab); } catch {}
     if (t.dataset.tab === 'stock') { renderReorderBanner(); renderStock(); }
     if (t.dataset.tab === 'history') renderHistory();
   })
 );
+function restoreTab() {
+  let saved = '';
+  try { saved = localStorage.getItem('stockmtt.tab') || ''; } catch {}
+  if (saved && saved !== 'deduct') {
+    const btn = $(`.tab[data-tab="${saved}"]`);
+    if (btn) btn.click();
+  }
+}
 
 // ---------- โหมด ตัดออก / รับเข้า ----------
 $$('.mode-btn').forEach((b) =>
@@ -94,9 +108,23 @@ $$('.mode-btn').forEach((b) =>
     updateModeUI();
   })
 );
+function countValidItems() {
+  let n = 0;
+  for (const card of $$('.review-card')) {
+    if (Number($('.prod-select', card).value) > 0 && Number($('.qty-input', card).value) > 0) n++;
+  }
+  return n;
+}
+function updateCommitButton() {
+  const verb = MODE === 'receive' ? 'ยืนยันรับเข้า' : 'ยืนยันตัดออก';
+  const n = countValidItems();
+  const btn = $('#btn-commit');
+  btn.textContent = n > 0 ? `✅ ${verb} (${n} รายการ)` : `✅ ${verb}`;
+  btn.disabled = n === 0;
+}
 function updateModeUI() {
-  $('#btn-commit').textContent = MODE === 'receive' ? '✅ ยืนยันรับเข้า' : '✅ ยืนยันตัดออก';
   $$('.review-card').forEach((c) => c._update && c._update());
+  updateCommitButton();
 }
 
 // ---------- ย่อรูปก่อนส่ง ----------
@@ -234,7 +262,7 @@ function makeReviewCard(item) {
   del.className = 'del-btn';
   del.textContent = '🗑';
   del.title = 'ลบรายการนี้';
-  del.addEventListener('click', () => card.remove());
+  del.addEventListener('click', () => { card.remove(); updateCommitButton(); });
 
   row2.appendChild(grow);
   row2.appendChild(qty);
@@ -249,13 +277,17 @@ function makeReviewCard(item) {
     const pid = Number(sel.value);
     const p = PRODUCTS.find((x) => x.id === pid);
     const q = Number(qty.value) || 0;
-    if (!p) { after.innerHTML = ''; return; }
-    const delta = MODE === 'receive' ? q : -q;
-    const remain = (p.stock || 0) + delta;
-    const sign = MODE === 'receive' ? '+' : '−';
-    after.innerHTML =
-      `คงเหลือ ${p.stock} → <b class="${remain < 0 ? 'neg' : ''}">${remain}</b> <span class="muted">(${sign}${q})</span>` +
-      (remain < 0 ? ' ⚠️ ติดลบ' : '');
+    if (!p) {
+      after.innerHTML = '';
+    } else {
+      const delta = MODE === 'receive' ? q : -q;
+      const remain = (p.stock || 0) + delta;
+      const sign = MODE === 'receive' ? '+' : '−';
+      after.innerHTML =
+        `คงเหลือ ${p.stock} → <b class="${remain < 0 ? 'neg' : ''}">${remain}</b> <span class="muted">(${sign}${q})</span>` +
+        (remain < 0 ? ' ⚠️ ติดลบ' : '');
+    }
+    updateCommitButton();
   };
   card._update = update;
   sel.addEventListener('change', update);
@@ -436,6 +468,7 @@ function makeStockItem(p) {
   sWrap.innerHTML = '<span>ยอดคงเหลือ</span>';
   const sInput = document.createElement('input');
   sInput.type = 'number';
+  sInput.inputMode = 'numeric';
   sInput.value = p.stock;
   sWrap.appendChild(sInput);
 
@@ -445,6 +478,7 @@ function makeStockItem(p) {
   const rInput = document.createElement('input');
   rInput.type = 'number';
   rInput.min = '0';
+  rInput.inputMode = 'numeric';
   rInput.value = p.reorderPoint || 0;
   rWrap.appendChild(rInput);
 
@@ -598,7 +632,9 @@ function renderStock() {
   // render เป็นชุด ๆ (กัน DOM หนักตอนมีหลายร้อยรายการ — โหลดต่อเมื่อเลื่อนใกล้ท้าย)
   stockView = items;
   stockShown = 0;
-  $('#stock-list').innerHTML = '';
+  const list = $('#stock-list');
+  list.innerHTML = '';
+  if (!items.length) { list.innerHTML = '<p class="muted">ไม่พบสินค้า</p>'; return; }
   appendStockBatch();
 }
 
@@ -637,6 +673,25 @@ $('#filter-category').addEventListener('change', onFilterChange);
 $('#sort-by').addEventListener('change', onFilterChange);
 loadFilters();
 try { $('#actor').value = localStorage.getItem('stockmtt.actor') || ''; } catch {}
+
+// ล้างฟิลเตอร์ทั้งหมดในคลิกเดียว
+$('#clear-filters').addEventListener('click', () => {
+  $('#stock-search').value = '';
+  $('#filter-category').value = '';
+  $('#sort-by').value = 'default';
+  $('#filter-low').checked = false;
+  $('#filter-neg').checked = false;
+  pendingCat = '';
+  saveFilters();
+  renderStock();
+});
+
+// ปุ่มลอยกลับขึ้นบนสุด (โผล่เมื่อเลื่อนลงเยอะ)
+const toTopBtn = $('#to-top');
+if (toTopBtn) {
+  addEventListener('scroll', () => { toTopBtn.hidden = scrollY < 600; }, { passive: true });
+  toTopBtn.addEventListener('click', () => scrollTo({ top: 0, behavior: 'smooth' }));
+}
 
 $('#btn-add-product').addEventListener('click', async () => {
   const name = $('#add-name').value.trim();
@@ -803,6 +858,7 @@ async function loadData() {
     if (err.message !== 'ต้องเข้าสู่ระบบ') setStatus('โหลดรายการสินค้าไม่ได้: ' + err.message, true);
   }
   updateModeUI();
+  restoreTab();
 }
 
 (async function boot() {

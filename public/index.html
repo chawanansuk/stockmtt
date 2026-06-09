@@ -85,12 +85,13 @@
         </select>
         <label class="filter-row"><input type="checkbox" id="filter-low" /> <span>ต้องสั่งซื้อ</span></label>
         <label class="filter-row"><input type="checkbox" id="filter-neg" /> <span>ติดลบ</span></label>
+        <button id="clear-filters" class="clear-btn" type="button">ล้างฟิลเตอร์</button>
       </div>
       <details class="card add-box">
         <summary>+ เพิ่มสินค้าใหม่</summary>
         <label class="field"><span>ชื่อสินค้า</span><input type="text" id="add-name" /></label>
         <label class="field"><span>หมวด</span><input type="text" id="add-category" /></label>
-        <label class="field"><span>จำนวนเริ่มต้น</span><input type="number" id="add-stock" value="0" /></label>
+        <label class="field"><span>จำนวนเริ่มต้น</span><input type="number" id="add-stock" value="0" inputmode="numeric" /></label>
         <button id="btn-add-product" class="primary">บันทึกสินค้า</button>
       </details>
       <p id="stock-count" class="muted small"></p>
@@ -105,6 +106,8 @@
       <div id="history-list"></div>
     </section>
   </main>
+
+  <button id="to-top" class="to-top" hidden aria-label="กลับขึ้นบนสุด">↑</button>
 
   <div id="login-overlay" class="overlay" hidden>
     <form id="login-form" class="login-card">

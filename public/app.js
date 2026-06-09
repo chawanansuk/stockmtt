@@ -147,6 +147,7 @@ function buildProductSelect(selectedId) {
 function makeReviewCard(item) {
   const card = document.createElement('div');
   card.className = 'review-card';
+  card._rawText = item.rawText || ''; // เก็บไว้ส่งให้ระบบจำคำย่อตอนยืนยัน
 
   const conf = item.confidence || 'low';
   const confLabel = { high: 'มั่นใจสูง', medium: 'ปานกลาง', low: 'ไม่แน่ใจ' }[conf] || conf;
@@ -232,7 +233,7 @@ $('#btn-commit').addEventListener('click', async () => {
   for (const card of $$('.review-card')) {
     const pid = Number($('.prod-select', card).value);
     const q = Number($('.qty-input', card).value);
-    if (pid > 0 && q > 0) items.push({ productId: pid, quantity: q });
+    if (pid > 0 && q > 0) items.push({ productId: pid, quantity: q, rawText: card._rawText || '' });
   }
   if (!items.length) { alert('ยังไม่มีรายการ (เลือกสินค้าและใส่จำนวน)'); return; }
 
@@ -298,88 +299,198 @@ function renderReorderBanner() {
   box.hidden = false;
 }
 
+// เติมตัวเลือกหมวด/โกดังในดรอปดาวน์ (คงค่าที่เลือกไว้ถ้ายังมีอยู่)
+function refreshCategories() {
+  const sel = $('#filter-category');
+  if (!sel) return;
+  const cur = sel.value;
+  const cats = [...new Set(PRODUCTS.map((p) => p.category || '').filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'th'));
+  sel.innerHTML =
+    '<option value="">ทุกหมวด/โกดัง</option>' +
+    cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  sel.value = cats.includes(cur) ? cur : '';
+}
+
+function makeStockItem(p) {
+  const row = document.createElement('div');
+  row.className = 'stock-item' + (isLow(p) ? ' low' : '');
+
+  // หัวข้อ: ชื่อ + หมวด + ปุ่มแก้ไข
+  const info = document.createElement('div');
+  info.className = 'info';
+  const nm = document.createElement('div');
+  nm.className = 'name';
+  nm.textContent = p.name;
+  const cat = document.createElement('div');
+  cat.className = 'cat';
+  cat.textContent = p.category || '';
+  info.appendChild(nm);
+  info.appendChild(cat);
+
+  const editToggle = document.createElement('button');
+  editToggle.className = 'edit-toggle';
+  editToggle.textContent = '✎';
+  editToggle.title = 'แก้ไข/ลบสินค้า';
+
+  const head = document.createElement('div');
+  head.className = 'item-head';
+  head.appendChild(info);
+  head.appendChild(editToggle);
+
+  // ยอดคงเหลือ / จุดสั่งซื้อ / บันทึก
+  const fields = document.createElement('div');
+  fields.className = 'sfields';
+
+  const sWrap = document.createElement('label');
+  sWrap.className = 'mini';
+  sWrap.innerHTML = '<span>ยอดคงเหลือ</span>';
+  const sInput = document.createElement('input');
+  sInput.type = 'number';
+  sInput.value = p.stock;
+  sWrap.appendChild(sInput);
+
+  const rWrap = document.createElement('label');
+  rWrap.className = 'mini';
+  rWrap.innerHTML = '<span>จุดสั่งซื้อ</span>';
+  const rInput = document.createElement('input');
+  rInput.type = 'number';
+  rInput.min = '0';
+  rInput.value = p.reorderPoint || 0;
+  rWrap.appendChild(rInput);
+
+  const save = document.createElement('button');
+  save.className = 'save';
+  save.textContent = 'บันทึก';
+  save.addEventListener('click', async () => {
+    save.disabled = true;
+    try {
+      const updated = await api(`/api/products/${p.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock: Number(sInput.value), reorderPoint: Number(rInput.value) }),
+      });
+      p.stock = updated.stock;
+      p.reorderPoint = updated.reorderPoint;
+      save.textContent = '✓';
+      setTimeout(() => (save.textContent = 'บันทึก'), 1200);
+      row.className = 'stock-item' + (isLow(p) ? ' low' : '');
+      updateLowBadge();
+      renderReorderBanner();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      save.disabled = false;
+    }
+  });
+
+  fields.appendChild(sWrap);
+  fields.appendChild(rWrap);
+  fields.appendChild(save);
+
+  // แผงแก้ไขชื่อ/หมวด + ลบ (ซ่อนไว้ กดปุ่ม ✎ เพื่อเปิด)
+  const edit = document.createElement('div');
+  edit.className = 'edit-panel';
+  edit.hidden = true;
+
+  const neWrap = document.createElement('label');
+  neWrap.className = 'field';
+  neWrap.innerHTML = '<span>ชื่อสินค้า</span>';
+  const nInput = document.createElement('input');
+  nInput.type = 'text';
+  nInput.value = p.name;
+  neWrap.appendChild(nInput);
+
+  const ceWrap = document.createElement('label');
+  ceWrap.className = 'field';
+  ceWrap.innerHTML = '<span>หมวด/โกดัง</span>';
+  const cInput = document.createElement('input');
+  cInput.type = 'text';
+  cInput.value = p.category || '';
+  ceWrap.appendChild(cInput);
+
+  const editActions = document.createElement('div');
+  editActions.className = 'edit-actions';
+  const saveEdit = document.createElement('button');
+  saveEdit.className = 'save';
+  saveEdit.textContent = 'บันทึกแก้ไข';
+  const delBtn = document.createElement('button');
+  delBtn.className = 'danger';
+  delBtn.textContent = '🗑 ลบสินค้า';
+
+  saveEdit.addEventListener('click', async () => {
+    const name = nInput.value.trim();
+    if (!name) { alert('ใส่ชื่อสินค้า'); return; }
+    saveEdit.disabled = true;
+    try {
+      const updated = await api(`/api/products/${p.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, category: cInput.value }),
+      });
+      p.name = updated.name;
+      p.category = updated.category;
+      renderStock();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      saveEdit.disabled = false;
+    }
+  });
+
+  delBtn.addEventListener('click', async () => {
+    if (!confirm(`ลบสินค้า "${p.name}" ?\n(ประวัติเดิมยังอยู่ แต่จะเพิ่ม/ตัดสต๊อกสินค้านี้ไม่ได้อีก)`)) return;
+    delBtn.disabled = true;
+    try {
+      await api(`/api/products/${p.id}`, { method: 'DELETE' });
+      const i = PRODUCTS.findIndex((x) => x.id === p.id);
+      if (i >= 0) PRODUCTS.splice(i, 1);
+      renderStock();
+      updateLowBadge();
+      renderReorderBanner();
+    } catch (err) {
+      alert(err.message);
+      delBtn.disabled = false;
+    }
+  });
+
+  editActions.appendChild(saveEdit);
+  editActions.appendChild(delBtn);
+  edit.appendChild(neWrap);
+  edit.appendChild(ceWrap);
+  edit.appendChild(editActions);
+
+  editToggle.addEventListener('click', () => {
+    edit.hidden = !edit.hidden;
+    editToggle.classList.toggle('open', !edit.hidden);
+  });
+
+  row.appendChild(head);
+  row.appendChild(fields);
+  row.appendChild(edit);
+  return row;
+}
+
 function renderStock() {
+  refreshCategories();
   const q = $('#stock-search').value.trim().toLowerCase();
   const onlyLow = $('#filter-low').checked;
+  const cat = $('#filter-category').value;
   const list = $('#stock-list');
   list.innerHTML = '';
 
   let items = PRODUCTS.filter(
     (p) => !q || p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
   );
+  if (cat) items = items.filter((p) => (p.category || '') === cat);
   if (onlyLow) items = items.filter(isLow);
   $('#stock-count').textContent = `สินค้า ${items.length} / ${PRODUCTS.length} รายการ`;
 
-  for (const p of items) {
-    const row = document.createElement('div');
-    row.className = 'stock-item' + (isLow(p) ? ' low' : '');
-
-    const info = document.createElement('div');
-    info.className = 'info';
-    const nm = document.createElement('div');
-    nm.className = 'name';
-    nm.textContent = p.name;
-    const cat = document.createElement('div');
-    cat.className = 'cat';
-    cat.textContent = p.category || '';
-    info.appendChild(nm);
-    info.appendChild(cat);
-
-    const fields = document.createElement('div');
-    fields.className = 'sfields';
-
-    const sWrap = document.createElement('label');
-    sWrap.className = 'mini';
-    sWrap.innerHTML = '<span>ยอดคงเหลือ</span>';
-    const sInput = document.createElement('input');
-    sInput.type = 'number';
-    sInput.value = p.stock;
-    sWrap.appendChild(sInput);
-
-    const rWrap = document.createElement('label');
-    rWrap.className = 'mini';
-    rWrap.innerHTML = '<span>จุดสั่งซื้อ</span>';
-    const rInput = document.createElement('input');
-    rInput.type = 'number';
-    rInput.min = '0';
-    rInput.value = p.reorderPoint || 0;
-    rWrap.appendChild(rInput);
-
-    const save = document.createElement('button');
-    save.className = 'save';
-    save.textContent = 'บันทึก';
-    save.addEventListener('click', async () => {
-      save.disabled = true;
-      try {
-        const updated = await api(`/api/products/${p.id}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stock: Number(sInput.value), reorderPoint: Number(rInput.value) }),
-        });
-        p.stock = updated.stock;
-        p.reorderPoint = updated.reorderPoint;
-        save.textContent = '✓';
-        setTimeout(() => (save.textContent = 'บันทึก'), 1200);
-        row.className = 'stock-item' + (isLow(p) ? ' low' : '');
-        updateLowBadge();
-        renderReorderBanner();
-      } catch (err) {
-        alert(err.message);
-      } finally {
-        save.disabled = false;
-      }
-    });
-
-    fields.appendChild(sWrap);
-    fields.appendChild(rWrap);
-    fields.appendChild(save);
-    row.appendChild(info);
-    row.appendChild(fields);
-    list.appendChild(row);
-  }
+  for (const p of items) list.appendChild(makeStockItem(p));
 }
 $('#stock-search').addEventListener('input', renderStock);
 $('#filter-low').addEventListener('change', renderStock);
+$('#filter-category').addEventListener('change', renderStock);
 
 $('#btn-add-product').addEventListener('click', async () => {
   const name = $('#add-name').value.trim();
@@ -420,7 +531,7 @@ async function renderHistory() {
       const div = document.createElement('div');
       div.className = 'tx' + (tx.voided ? ' voided' : '');
       div.innerHTML =
-        `<div class="tx-head"><span>${when}</span>` +
+        `<div class="tx-head"><span>${when}${tx.date ? ' • ใบลงวันที่ ' + esc(tx.date) : ''}</span>` +
         `<span class="tx-type ${tx.type}">${verb}${tx.voided ? ' • ยกเลิกแล้ว' : ''}</span></div>` +
         (tx.note ? `<div class="muted small">📝 ${esc(tx.note)}</div>` : '') +
         `<ul>${rows}</ul>`;
@@ -450,6 +561,47 @@ async function renderHistory() {
     list.innerHTML = `<p class="status error">${esc(err.message)}</p>`;
   }
 }
+
+// ---------- ส่งออก Excel (.csv รองรับภาษาไทย) ----------
+function csvCell(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCSV(filename, rows) {
+  const csv = rows.map((r) => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM ให้ Excel อ่านไทยถูก
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+$('#btn-export-stock').addEventListener('click', () => {
+  if (!PRODUCTS.length) { alert('ยังไม่มีสินค้า'); return; }
+  const rows = [['ชื่อสินค้า', 'หมวด/โกดัง', 'ยอดคงเหลือ', 'จุดสั่งซื้อ', 'ต้องสั่งซื้อ']];
+  for (const p of PRODUCTS) rows.push([p.name, p.category || '', p.stock, p.reorderPoint || 0, isLow(p) ? 'ใช่' : '']);
+  downloadCSV(`stock-${todayStr()}.csv`, rows);
+});
+
+$('#btn-export-history').addEventListener('click', async () => {
+  let txs;
+  try { txs = await api('/api/transactions'); } catch (err) { alert(err.message); return; }
+  if (!txs.length) { alert('ยังไม่มีประวัติ'); return; }
+  const rows = [['วันเวลา', 'ประเภท', 'สถานะ', 'สินค้า', 'จำนวน', 'คงเหลือหลังทำ', 'หมายเหตุ', 'วันที่บนใบ']];
+  for (const tx of txs) {
+    const when = new Date(tx.createdAt).toLocaleString('th-TH');
+    const verb = tx.type === 'receive' ? 'รับเข้า' : 'ตัดออก';
+    const status = tx.voided ? 'ยกเลิกแล้ว' : 'ปกติ';
+    const sign = tx.type === 'receive' ? '+' : '-';
+    for (const it of tx.items) rows.push([when, verb, status, it.name, sign + it.quantity, it.after, tx.note || '', tx.date || '']);
+  }
+  downloadCSV(`history-${todayStr()}.csv`, rows);
+});
 
 // ---------- เริ่มทำงาน ----------
 (async function init() {

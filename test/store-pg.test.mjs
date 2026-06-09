@@ -41,5 +41,17 @@ const txs = await pgstore.getTransactions();
 check('transactions listed', txs.length >= 2);
 check('deduct shows voided in list', txs.find((t) => t.id === dx.id)?.voided === true);
 
+// ระบบจำคำย่อ (alias) — จาก rawText ตอน commit + addAlias โดยตรง
+await pgstore.commit({ items: [{ productId: first.id, quantity: 1, rawText: 'ตดเลย ' }], type: 'deduct' });
+const aliases = await pgstore.getAliases();
+check('alias saved from rawText (trimmed)', aliases.some((a) => a.text === 'ตดเลย' && a.productId === first.id));
+await pgstore.addAlias('  ABC  ', np.id);
+check('addAlias normalizes + upserts', (await pgstore.getAliases()).some((a) => a.text === 'abc' && a.productId === np.id));
+
+// ลบสินค้า
+check('deleteProduct returns true', (await pgstore.deleteProduct(np.id)) === true);
+check('deleted product gone', (await pgstore.getProduct(np.id)) === undefined);
+check('deleteProduct missing returns false', (await pgstore.deleteProduct(999999)) === false);
+
 console.log(`\n  ผลทดสอบ PG: ผ่าน ${pass} / ไม่ผ่าน ${fail}`);
 process.exit(fail ? 1 : 0);

@@ -17,9 +17,12 @@ app.get('/manifest.webmanifest', (req, res) =>
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ตัวช่วยจับ error ใน async route
+// - AppError (err.expose) → แสดงข้อความที่ตั้งใจให้ผู้ใช้เห็น
+// - error อื่น → log ไว้ฝั่งเซิร์ฟเวอร์ แล้วส่งข้อความกลาง ๆ (ไม่เผยรายละเอียดภายใน)
 const wrap = (fn) => (req, res) => fn(req, res).catch((err) => {
+  if (err?.expose) return res.status(err.status || 400).json({ error: err.message });
   console.error(err);
-  res.status(500).json({ error: err?.message || 'เกิดข้อผิดพลาด' });
+  res.status(500).json({ error: 'เกิดข้อผิดพลาดในระบบ ลองใหม่อีกครั้ง' });
 });
 
 // รายการสินค้าทั้งหมด
@@ -39,6 +42,13 @@ app.post('/api/products/:id', wrap(async (req, res) => {
   const p = await store.updateProduct(req.params.id, req.body || {});
   if (!p) return res.status(404).json({ error: 'ไม่พบสินค้า' });
   res.json(p);
+}));
+
+// ลบสินค้า
+app.delete('/api/products/:id', wrap(async (req, res) => {
+  const ok = await store.deleteProduct(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'ไม่พบสินค้า' });
+  res.json({ ok: true });
 }));
 
 // อ่านรูปด้วย AI (ยังไม่บันทึก — แค่คืนรายการให้ตรวจ)
@@ -109,7 +119,14 @@ function lanUrls(port) {
 
 const PORT = process.env.PORT || 3000;
 
-await store.init(); // เตรียมฐานข้อมูล (ถ้ามี) ก่อนเปิดเซิร์ฟเวอร์
+// เตรียมฐานข้อมูล (ถ้ามี) ก่อนเปิดเซิร์ฟเวอร์
+try {
+  await store.init();
+} catch (e) {
+  console.error('\n  ❌ เชื่อมต่อ/เตรียมฐานข้อมูลไม่สำเร็จ:', e.message);
+  console.error('     ตรวจ DATABASE_URL ให้ถูกต้อง (หรือเอาออกเพื่อใช้ไฟล์ JSON ในเครื่อง)\n');
+  process.exit(1);
+}
 
 app.listen(PORT, () => {
   const urls = lanUrls(PORT);

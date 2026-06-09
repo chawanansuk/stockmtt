@@ -66,7 +66,10 @@
     <section id="tab-stock" class="panel">
       <div id="reorder-banner" class="card warn-box" hidden></div>
       <input type="search" id="stock-search" class="search" placeholder="ค้นหาสินค้า..." />
-      <label class="filter-row"><input type="checkbox" id="filter-low" /> <span>แสดงเฉพาะที่ต้องสั่งซื้อ</span></label>
+      <div class="filter-bar">
+        <select id="filter-category" class="cat-select"><option value="">ทุกหมวด/โกดัง</option></select>
+        <label class="filter-row"><input type="checkbox" id="filter-low" /> <span>เฉพาะที่ต้องสั่งซื้อ</span></label>
+      </div>
       <details class="card add-box">
         <summary>+ เพิ่มสินค้าใหม่</summary>
         <label class="field"><span>ชื่อสินค้า</span><input type="text" id="add-name" /></label>
@@ -76,11 +79,13 @@
       </details>
       <p id="stock-count" class="muted small"></p>
       <p class="muted small">💡 ตั้ง “จุดสั่งซื้อ” มากกว่า 0 เพื่อเปิดแจ้งเตือนของใกล้หมด</p>
+      <button id="btn-export-stock" class="ghost">📤 ส่งออกสต๊อกเป็น Excel (.csv)</button>
       <div id="stock-list"></div>
     </section>
 
     <!-- ===== ประวัติ ===== -->
     <section id="tab-history" class="panel">
+      <button id="btn-export-history" class="ghost">📤 ส่งออกประวัติเป็น Excel (.csv)</button>
       <div id="history-list"></div>
     </section>
   </main>

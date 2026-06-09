@@ -73,7 +73,14 @@
       <input type="search" id="stock-search" class="search" placeholder="ค้นหาสินค้า..." />
       <div class="filter-bar">
         <select id="filter-category" class="cat-select"><option value="">ทุกหมวด/โกดัง</option></select>
-        <label class="filter-row"><input type="checkbox" id="filter-low" /> <span>เฉพาะที่ต้องสั่งซื้อ</span></label>
+        <select id="sort-by" class="sort-select">
+          <option value="default">เรียง: เริ่มต้น</option>
+          <option value="name">เรียง: ชื่อ ก-ฮ</option>
+          <option value="stock-asc">เรียง: สต๊อกน้อย→มาก</option>
+          <option value="stock-desc">เรียง: สต๊อกมาก→น้อย</option>
+        </select>
+        <label class="filter-row"><input type="checkbox" id="filter-low" /> <span>ต้องสั่งซื้อ</span></label>
+        <label class="filter-row"><input type="checkbox" id="filter-neg" /> <span>ติดลบ</span></label>
       </div>
       <details class="card add-box">
         <summary>+ เพิ่มสินค้าใหม่</summary>

@@ -12,6 +12,10 @@
   --amber: #c8860a;
 }
 
+/* ให้ attribute hidden มีผลเสมอ แม้ element จะถูกตั้ง display ผ่าน class
+   (กันบั๊ก เช่น .overlay{display:flex} ชนะ [hidden] ทำให้โผล่ทั้งที่ควรซ่อน) */
+[hidden] { display: none !important; }
+
 * { box-sizing: border-box; }
 
 body {
@@ -226,8 +230,8 @@ select, input[type="text"], input[type="number"], input[type="search"] {
 }
 
 /* แถวฟิลเตอร์ในหน้าสต๊อก */
-.filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
-.cat-select { flex: 1; }
+.filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.cat-select, .sort-select { flex: 1 1 160px; min-width: 140px; }
 .filter-bar .filter-row { margin: 0; white-space: nowrap; }
 
 /* หัวข้อสินค้า + ปุ่มแก้ไข */
@@ -284,3 +288,12 @@ header { position: relative; }
   background-size: 400% 100%; animation: shimmer 1.3s ease-in-out infinite;
 }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* ===== toast ===== */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+  background: #1f2937; color: #fff; padding: 11px 18px; border-radius: 999px;
+  font-size: 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+  opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 1100;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

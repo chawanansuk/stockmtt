@@ -226,7 +226,9 @@ function makeReviewCard(item) {
   qty.type = 'number';
   qty.className = 'qty-input';
   qty.min = '0';
+  qty.inputMode = 'numeric';
   qty.value = item.quantity || 1;
+  qty.addEventListener('input', () => { if (qty.value !== '' && Number(qty.value) < 0) qty.value = '0'; });
 
   const del = document.createElement('button');
   del.className = 'del-btn';
@@ -349,17 +351,51 @@ function renderReorderBanner() {
   box.hidden = false;
 }
 
+// ---------- จำฟิลเตอร์ล่าสุด (localStorage) + toast ----------
+const FILTERS_KEY = 'stockmtt.filters';
+let pendingCat = '';
+function saveFilters() {
+  try {
+    localStorage.setItem(FILTERS_KEY, JSON.stringify({
+      q: $('#stock-search').value,
+      cat: $('#filter-category').value,
+      low: $('#filter-low').checked,
+      neg: $('#filter-neg').checked,
+      sort: $('#sort-by').value,
+    }));
+  } catch {}
+}
+function loadFilters() {
+  let f = {};
+  try { f = JSON.parse(localStorage.getItem(FILTERS_KEY) || '{}'); } catch {}
+  if (f.q) $('#stock-search').value = f.q;
+  if (f.low) $('#filter-low').checked = true;
+  if (f.neg) $('#filter-neg').checked = true;
+  if (f.sort) $('#sort-by').value = f.sort;
+  pendingCat = f.cat || ''; // ตัวเลือกหมวดถูกสร้างทีหลัง → เก็บไว้ใช้ตอน refreshCategories
+}
+
+function showToast(msg) {
+  let t = $('#toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
 // เติมตัวเลือกหมวด/โกดังในดรอปดาวน์ (คงค่าที่เลือกไว้ถ้ายังมีอยู่)
 function refreshCategories() {
   const sel = $('#filter-category');
   if (!sel) return;
-  const cur = sel.value;
+  const cur = sel.value || pendingCat;
   const cats = [...new Set(PRODUCTS.map((p) => p.category || '').filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'th'));
   sel.innerHTML =
     '<option value="">ทุกหมวด/โกดัง</option>' +
     cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
   sel.value = cats.includes(cur) ? cur : '';
+  pendingCat = '';
 }
 
 function makeStockItem(p) {
@@ -413,20 +449,28 @@ function makeStockItem(p) {
   save.className = 'save';
   save.textContent = 'บันทึก';
   save.addEventListener('click', async () => {
+    const newStock = Number(sInput.value);
+    const newReorder = Number(rInput.value);
+    if (sInput.value.trim() === '' || !Number.isFinite(newStock) || !Number.isFinite(newReorder)) {
+      alert('กรอกตัวเลขให้ถูกต้อง'); return;
+    }
+    if (newReorder < 0) { alert('จุดสั่งซื้อต้องไม่ติดลบ'); return; }
+    // เปลี่ยนยอดเยอะ ๆ ให้ยืนยันก่อน (กันพิมพ์พลาด)
+    if (Math.abs(newStock - (p.stock || 0)) >= 100 &&
+        !confirm(`ยืนยันแก้ยอด "${p.name}" จาก ${p.stock} เป็น ${newStock}?`)) return;
     save.disabled = true;
     try {
       const updated = await api(`/api/products/${p.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: Number(sInput.value), reorderPoint: Number(rInput.value) }),
+        body: JSON.stringify({ stock: newStock, reorderPoint: newReorder }),
       });
       p.stock = updated.stock;
       p.reorderPoint = updated.reorderPoint;
-      save.textContent = '✓';
-      setTimeout(() => (save.textContent = 'บันทึก'), 1200);
       row.className = 'stock-item' + (isLow(p) ? ' low' : '');
       updateLowBadge();
       renderReorderBanner();
+      showToast('บันทึกแล้ว');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -481,6 +525,7 @@ function makeStockItem(p) {
       p.name = updated.name;
       p.category = updated.category;
       renderStock();
+      showToast('บันทึกการแก้ไขแล้ว');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -498,6 +543,7 @@ function makeStockItem(p) {
       renderStock();
       updateLowBadge();
       renderReorderBanner();
+      showToast('ลบสินค้าแล้ว');
     } catch (err) {
       alert(err.message);
       delBtn.disabled = false;
@@ -525,7 +571,9 @@ function renderStock() {
   refreshCategories();
   const q = $('#stock-search').value.trim().toLowerCase();
   const onlyLow = $('#filter-low').checked;
+  const onlyNeg = $('#filter-neg').checked;
   const cat = $('#filter-category').value;
+  const sort = $('#sort-by').value;
   const list = $('#stock-list');
   list.innerHTML = '';
 
@@ -534,13 +582,22 @@ function renderStock() {
   );
   if (cat) items = items.filter((p) => (p.category || '') === cat);
   if (onlyLow) items = items.filter(isLow);
-  $('#stock-count').textContent = `สินค้า ${items.length} / ${PRODUCTS.length} รายการ`;
+  if (onlyNeg) items = items.filter((p) => (Number(p.stock) || 0) < 0);
 
+  if (sort === 'name') items = [...items].sort((a, b) => a.name.localeCompare(b.name, 'th'));
+  else if (sort === 'stock-asc') items = [...items].sort((a, b) => (a.stock || 0) - (b.stock || 0));
+  else if (sort === 'stock-desc') items = [...items].sort((a, b) => (b.stock || 0) - (a.stock || 0));
+
+  $('#stock-count').textContent = `สินค้า ${items.length} / ${PRODUCTS.length} รายการ`;
   for (const p of items) list.appendChild(makeStockItem(p));
 }
-$('#stock-search').addEventListener('input', renderStock);
-$('#filter-low').addEventListener('change', renderStock);
-$('#filter-category').addEventListener('change', renderStock);
+const onFilterChange = () => { saveFilters(); renderStock(); };
+$('#stock-search').addEventListener('input', onFilterChange);
+$('#filter-low').addEventListener('change', onFilterChange);
+$('#filter-neg').addEventListener('change', onFilterChange);
+$('#filter-category').addEventListener('change', onFilterChange);
+$('#sort-by').addEventListener('change', onFilterChange);
+loadFilters();
 
 $('#btn-add-product').addEventListener('click', async () => {
   const name = $('#add-name').value.trim();
@@ -557,6 +614,7 @@ $('#btn-add-product').addEventListener('click', async () => {
     $('#add-stock').value = '0';
     renderStock();
     updateLowBadge();
+    showToast('เพิ่มสินค้าแล้ว');
   } catch (err) {
     alert(err.message);
   }

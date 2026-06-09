@@ -180,3 +180,47 @@ select, input[type="text"], input[type="number"], input[type="search"] {
 .tx .tx-head { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .tx ul { margin: 0; padding-left: 18px; }
 .tx li { margin: 2px 0; }
+
+/* โหมด ตัดออก / รับเข้า */
+.mode-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+.mode-btn {
+  flex: 1; padding: 12px; border: 1px solid var(--line); background: #fff;
+  border-radius: 10px; font-size: 15px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.mode-btn.active[data-mode="deduct"] { background: #fdecea; border-color: var(--red); color: var(--red); }
+.mode-btn.active[data-mode="receive"] { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+/* ป้ายแจ้งจำนวนของใกล้หมดบนแท็บ */
+.tab-badge {
+  display: inline-block; min-width: 18px; padding: 0 5px; background: var(--red); color: #fff;
+  border-radius: 20px; font-size: 11px; line-height: 18px; text-align: center; font-weight: 700; vertical-align: middle;
+}
+
+/* กล่องเตือนของใกล้หมด */
+.warn-box { border-color: var(--amber); background: #fdf6e7; }
+.warn-box h2 { margin: 0 0 8px; color: var(--amber); font-size: 16px; }
+.warn-box ul { margin: 0; padding-left: 18px; }
+.warn-box li { margin: 2px 0; }
+
+.filter-row { display: flex; align-items: center; gap: 8px; margin: 0 2px 12px; font-size: 14px; color: var(--muted); }
+.filter-row input { width: auto; }
+
+/* แถวสต๊อกแบบหลายช่อง */
+.stock-item { flex-direction: column; align-items: stretch; gap: 8px; }
+.stock-item.low { border-color: var(--amber); background: #fffaf0; }
+.sfields { display: flex; gap: 8px; align-items: flex-end; }
+.mini { display: flex; flex-direction: column; flex: 0 0 auto; }
+.mini span { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.mini input { width: 86px; text-align: center; }
+.sfields .save { margin-left: auto; align-self: stretch; }
+
+/* ประวัติ */
+.tx.voided { opacity: 0.55; }
+.tx.voided ul { text-decoration: line-through; }
+.tx-type { font-weight: 700; }
+.tx-type.receive { color: var(--green); }
+.tx-type.deduct { color: var(--red); }
+.void-btn {
+  margin-top: 8px; background: none; border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 10px; color: var(--muted); font-size: 13px; cursor: pointer;
+}

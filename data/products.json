@@ -1,692 +1,1199 @@
 [
   {
+    "id": 116,
+    "name": "เลื่อย 10900",
+    "category": "โกดัง",
+    "stock": 68,
+    "reorderPoint": 0
+  },
+  {
+    "id": 117,
+    "name": "เลื่อย10968",
+    "category": "โกดัง",
+    "stock": 46,
+    "reorderPoint": 0
+  },
+  {
+    "id": 118,
+    "name": "เลื่อย 10899",
+    "category": "โกดัง",
+    "stock": 90,
+    "reorderPoint": 0
+  },
+  {
+    "id": 119,
+    "name": "ปืนแก๊ส 88",
+    "category": "โกดัง",
+    "stock": 615,
+    "reorderPoint": 0
+  },
+  {
+    "id": 120,
+    "name": "ปืนแก๊ส 20",
+    "category": "โกดัง",
+    "stock": 487,
+    "reorderPoint": 0
+  },
+  {
+    "id": 121,
+    "name": "ยิงแก๊สยืด",
+    "category": "โกดัง",
+    "stock": 25,
+    "reorderPoint": 0
+  },
+  {
+    "id": 122,
+    "name": "ตัดหญ้าไม้",
+    "category": "โกดัง",
+    "stock": 100,
+    "reorderPoint": 0
+  },
+  {
+    "id": 123,
+    "name": "แจสิง50 สั้นเงิน",
+    "category": "โกดัง",
+    "stock": 8,
+    "reorderPoint": 0
+  },
+  {
+    "id": 124,
+    "name": "แจสิง 50 สั้นทอง",
+    "category": "โกดัง",
+    "stock": 17,
+    "reorderPoint": 0
+  },
+  {
+    "id": 125,
+    "name": "แจสิง 50 ยาว ทอง",
+    "category": "โกดัง",
+    "stock": 6,
+    "reorderPoint": 0
+  },
+  {
+    "id": 126,
+    "name": "แจสิง 40สั้น ทอง",
+    "category": "โกดัง",
+    "stock": 15,
+    "reorderPoint": 0
+  },
+  {
+    "id": 127,
+    "name": "แจสิง 40ยาว ทอง",
+    "category": "โกดัง",
+    "stock": 6,
+    "reorderPoint": 0
+  },
+  {
+    "id": 128,
+    "name": "แจสิง 50/3",
+    "category": "โกดัง",
+    "stock": 16,
+    "reorderPoint": 0
+  },
+  {
+    "id": 129,
+    "name": "แจสิง 50/5",
+    "category": "โกดัง",
+    "stock": 14,
+    "reorderPoint": 0
+  },
+  {
+    "id": 130,
+    "name": "มีดสแตนเลส3นิ้ว",
+    "category": "โกดัง",
+    "stock": 36,
+    "reorderPoint": 0
+  },
+  {
+    "id": 131,
+    "name": "ทองสั้น25",
+    "category": "โกดัง",
+    "stock": 96,
+    "reorderPoint": 0
+  },
+  {
+    "id": 132,
+    "name": "เข็มถูก  ตรงงอ",
+    "category": "โกดัง",
+    "stock": 116,
+    "reorderPoint": 0
+  },
+  {
+    "id": 133,
+    "name": "ทองสั้น20",
+    "category": "โกดัง",
+    "stock": 7,
+    "reorderPoint": 0
+  },
+  {
+    "id": 134,
+    "name": "ทองสั้น63",
+    "category": "โกดัง",
+    "stock": 12,
+    "reorderPoint": 0
+  },
+  {
+    "id": 135,
+    "name": "ทองยาว 32",
+    "category": "โกดัง",
+    "stock": 23,
+    "reorderPoint": 0
+  },
+  {
+    "id": 136,
+    "name": "ลักกี้ชุบสั้น32",
+    "category": "โกดัง",
+    "stock": 61,
+    "reorderPoint": 0
+  },
+  {
+    "id": 137,
+    "name": "กรรไกรหุ้ม1",
+    "category": "โกดัง",
+    "stock": 43,
+    "reorderPoint": 0
+  },
+  {
+    "id": 138,
+    "name": "กรรไกรหุ้ม2",
+    "category": "โกดัง",
+    "stock": 29,
+    "reorderPoint": 0
+  },
+  {
+    "id": 139,
+    "name": "กรรไกรหุ้ม3",
+    "category": "โกดัง",
+    "stock": 54,
+    "reorderPoint": 0
+  },
+  {
+    "id": 140,
+    "name": "กรรไกรหุ้ม4",
+    "category": "โกดัง",
+    "stock": 49,
+    "reorderPoint": 0
+  },
+  {
+    "id": 141,
+    "name": "ลวดแมกสิง",
+    "category": "โกดัง",
+    "stock": 199,
+    "reorderPoint": 0
+  },
+  {
+    "id": 142,
+    "name": "ตัดกิ่งทอง",
+    "category": "โกดัง",
+    "stock": 19,
+    "reorderPoint": 0
+  },
+  {
+    "id": 143,
+    "name": "ตัดกิ่งโซเฮง",
+    "category": "โกดัง",
+    "stock": 58,
+    "reorderPoint": 0
+  },
+  {
+    "id": 144,
+    "name": "แจสิง30สั้นเงิน",
+    "category": "โกดัง",
+    "stock": 63,
+    "reorderPoint": 0
+  },
+  {
+    "id": 145,
+    "name": "แจสิง30ยาวเงิน",
+    "category": "โกดัง",
+    "stock": 33,
+    "reorderPoint": 0
+  },
+  {
+    "id": 146,
+    "name": "เลื่อยเหล็ก",
+    "category": "โกดัง",
+    "stock": 68,
+    "reorderPoint": 0
+  },
+  {
+    "id": 147,
+    "name": "ค้อนสั้น",
+    "category": "โกดัง",
+    "stock": 5,
+    "reorderPoint": 0
+  },
+  {
+    "id": 148,
+    "name": "ค้อน18",
+    "category": "โกดัง",
+    "stock": 15,
+    "reorderPoint": 0
+  },
+  {
+    "id": 149,
+    "name": "มีด921P",
+    "category": "โกดัง",
+    "stock": 26,
+    "reorderPoint": 0
+  },
+  {
+    "id": 150,
+    "name": "มีด973P",
+    "category": "โกดัง",
+    "stock": 101,
+    "reorderPoint": 0
+  },
+  {
+    "id": 151,
+    "name": "กากบาททอง",
+    "category": "โกดัง",
+    "stock": 67,
+    "reorderPoint": 0
+  },
+  {
+    "id": 152,
+    "name": "บล็อค45",
+    "category": "โกดัง",
+    "stock": 21,
+    "reorderPoint": 0
+  },
+  {
+    "id": 153,
+    "name": "ทองยาว25",
+    "category": "โกดัง",
+    "stock": 20,
+    "reorderPoint": 0
+  },
+  {
+    "id": 154,
+    "name": "เลือ่ยฉลุชุด",
+    "category": "โกดัง",
+    "stock": 2,
+    "reorderPoint": 0
+  },
+  {
+    "id": 155,
+    "name": "ดำสั้น63",
+    "category": "โกดัง",
+    "stock": 8,
+    "reorderPoint": 0
+  },
+  {
+    "id": 156,
+    "name": "โซเฮง 40สั้น",
+    "category": "โกดัง",
+    "stock": 13,
+    "reorderPoint": 0
+  },
+  {
+    "id": 157,
+    "name": "โซเฮง 40ยาว",
+    "category": "โกดัง",
+    "stock": 14,
+    "reorderPoint": 0
+  },
+  {
+    "id": 158,
+    "name": "โซเฮง 50สั้น",
+    "category": "โกดัง",
+    "stock": 18,
+    "reorderPoint": 0
+  },
+  {
+    "id": 159,
+    "name": "โซเฮง 50ยาว",
+    "category": "โกดัง",
+    "stock": 15,
+    "reorderPoint": 0
+  },
+  {
+    "id": 160,
+    "name": "แจแผง 20สั้น",
+    "category": "โกดัง",
+    "stock": 59,
+    "reorderPoint": 0
+  },
+  {
+    "id": 161,
+    "name": "แจแผง 25สั้น",
+    "category": "โกดัง",
+    "stock": 89,
+    "reorderPoint": 0
+  },
+  {
+    "id": 162,
+    "name": "แจแผง 32สั้น",
+    "category": "โกดัง",
+    "stock": 109,
+    "reorderPoint": 0
+  },
+  {
+    "id": 163,
+    "name": "แจแผง 32ยาว",
+    "category": "โกดัง",
+    "stock": 20,
+    "reorderPoint": 0
+  },
+  {
+    "id": 164,
+    "name": "แจแผง 38สั้น",
+    "category": "โกดัง",
+    "stock": 102,
+    "reorderPoint": 0
+  },
+  {
+    "id": 165,
+    "name": "แจแผง 38ยาว",
+    "category": "โกดัง",
+    "stock": 22,
+    "reorderPoint": 0
+  },
+  {
+    "id": 166,
+    "name": "ปากกา8นิ้ว",
+    "category": "โกดัง",
+    "stock": 9,
+    "reorderPoint": 0
+  },
+  {
+    "id": 167,
+    "name": "มีดแผง1",
+    "category": "โกดัง",
+    "stock": 87,
+    "reorderPoint": 0
+  },
+  {
+    "id": 168,
+    "name": "มีดแผง2",
+    "category": "โกดัง",
+    "stock": 85,
+    "reorderPoint": 0
+  },
+  {
+    "id": 169,
+    "name": "มีดแผง3",
+    "category": "โกดัง",
+    "stock": 88,
+    "reorderPoint": 0
+  },
+  {
+    "id": 170,
+    "name": "ด้ามบล็อค18",
+    "category": "โกดัง",
+    "stock": 24,
+    "reorderPoint": 0
+  },
+  {
+    "id": 171,
+    "name": "ตัวทีถูก14",
+    "category": "โกดัง",
+    "stock": 6,
+    "reorderPoint": 0
+  },
+  {
     "id": 1,
     "name": "ตัดเล็บ340",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 2,
     "name": "ตัดเล็บ350",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 3,
     "name": "โดโก้",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 4,
     "name": "จิ้มฟันห่อ",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 5,
     "name": "ลักกี้ชุบสั้น32",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 6,
     "name": "ลักกี้ชุบสั้น38",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 7,
     "name": "ลักกี้ชุบสั้น50",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 8,
     "name": "ลักกี้ชุบยาว32",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 9,
     "name": "ลักกี้ชุบยาว38",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 10,
     "name": "ลักกี้ชุบยาว50",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 11,
     "name": "ทองสั้น32",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 12,
     "name": "ทองสั้น38",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 13,
     "name": "ทองสั้น50",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 14,
     "name": "ทองยาว38",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 15,
     "name": "ทองยาว50",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 16,
     "name": "ค้อน4ปอน",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 17,
     "name": "ดำสั้น32",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 18,
     "name": "ดำสั้น38",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 19,
     "name": "ดำสั้น50",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 20,
     "name": "ดำยาว32",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 21,
     "name": "ดำยาว38",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 22,
     "name": "ดำยาว50",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 23,
     "name": "มีดผีเสื้อเลส",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 24,
     "name": "ตัดท่อเขียว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 25,
     "name": "ด้ามยืด4.5",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 26,
     "name": "เข็มกลัด#000",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 27,
     "name": "เข็มกลัด#00",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 28,
     "name": "เข็มกลัด#5",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 29,
     "name": "เข็มกลัด#4",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 30,
     "name": "เข็มกลัด#3",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 31,
     "name": "เข็มกลัด#2",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 32,
     "name": "เข็มกลัด#1",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 33,
     "name": "เข็มกลัด#0",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 34,
     "name": "ตัดหญ้าไม้",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 35,
     "name": "ตัดหญ้าส้ม",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 36,
     "name": "โซ่ 3.0",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 37,
     "name": "โซ้ 2.4",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 38,
     "name": "เข็มกลัด#7",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 39,
     "name": "กุญแจสิง40สั้น",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 40,
     "name": "ไม้แขวน",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 41,
     "name": "กิฟ7310",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 42,
     "name": "กุญแจสิง50ยาว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 43,
     "name": "กุญแจสิง40ยาว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 44,
     "name": "เอสตร้า",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 45,
     "name": "เลื่อย10900",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 46,
     "name": "กระดาษทราย120",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 47,
     "name": "กระดาษทราย100",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 48,
     "name": "แปรงอิสแมน",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 49,
     "name": "จิ้มฟันขวด",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 50,
     "name": "ตัดด้ายดำ",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 51,
     "name": "ตัดด้ายสี",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 52,
     "name": "แปรงสมอนม",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 53,
     "name": "แปรงเตารีดP",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 54,
     "name": "ค้อน2ปอน",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 55,
     "name": "หนับผ้าเลส",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 56,
     "name": "โซ่ชุบยักษ์",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 57,
     "name": "แปรงสมอสี",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 58,
     "name": "ตัดหญ้ามีเนียมส้ม",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 59,
     "name": "ปืนกาวเล็ก",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 60,
     "name": "ปืนกาวใหญ่",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 61,
     "name": "กรรไกร304",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 62,
     "name": "7320ถูก",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 63,
     "name": "มีด 973p",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 64,
     "name": "ตัดด้ายใหญ่",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 65,
     "name": "กรรไกรแผง",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 66,
     "name": "คีมล็อค88",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 67,
     "name": "8108A",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 68,
     "name": "82101A",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 69,
     "name": "ตัวที#8",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 70,
     "name": "ตัวที#10",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 71,
     "name": "เลื่อนmtt6นิ้ว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 72,
     "name": "เลื่อนmtt8นิ้ว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 73,
     "name": "เลื่อนmtt10นิ้ว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 74,
     "name": "เลื่อนmtt12นิ้ว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 75,
     "name": "เลื่อนmtt15นิ้ว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 76,
     "name": "เลื่อนmtt18นิ้ว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 77,
     "name": "เลื่อนmtt24นิ้ว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 78,
     "name": "กุญแจ40/3",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 79,
     "name": "กุญแจ40/5",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 80,
     "name": "กุญแจ50/3",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 81,
     "name": "กุญแจ50/5",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 82,
     "name": "สลิงสีเล็ก",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 83,
     "name": "สลิงสีใหญ่",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 84,
     "name": "แก๊สปิคนิค",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 85,
     "name": "โซเฮง 40ยาว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 86,
     "name": "โซเฮง 40 สั้น",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 87,
     "name": "โซเฮง 50 ยาว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 88,
     "name": "ดำสั้น25",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 89,
     "name": "ดำสั้น63",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 90,
     "name": "ทองสั้น63",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 91,
     "name": "กุญแจสิง30 สั้น",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 92,
     "name": "กุญแจสิง 30 ยาว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 93,
     "name": "กากบาท6เหลี่ยม",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 94,
     "name": "ลวดแม้กสิง",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 95,
     "name": "เทปพันเกลียว",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 96,
     "name": "แปรงเหอผิง",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 97,
     "name": "ตัดกิ่งไม้มีเนียม",
     "category": "เปา",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 98,
     "name": "กุญแจ30 ยาว",
     "category": "ตู้เหลือง",
-    "stock": 6
+    "stock": 6,
+    "reorderPoint": 0
   },
   {
     "id": 99,
     "name": "เข็มกลัด#2",
     "category": "ตู้เหลือง",
-    "stock": 5
+    "stock": 5,
+    "reorderPoint": 0
   },
   {
     "id": 100,
     "name": "เข็มกลัด#00",
     "category": "ตู้เหลือง",
-    "stock": 31
+    "stock": 31,
+    "reorderPoint": 0
   },
   {
     "id": 101,
     "name": "เข็มกลัด#000",
     "category": "ตู้เหลือง",
-    "stock": 20
+    "stock": 20,
+    "reorderPoint": 0
   },
   {
     "id": 102,
     "name": "ลวดแมกสิงโต",
     "category": "ตู้เหลือง",
-    "stock": 41
+    "stock": 41,
+    "reorderPoint": 0
   },
   {
     "id": 103,
     "name": "ค้อนโซเฮง",
     "category": "ตู้เหลือง",
-    "stock": 47
+    "stock": 47,
+    "reorderPoint": 0
   },
   {
     "id": 104,
     "name": "กาวแมงวัน",
     "category": "ตู้เหลือง",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 105,
     "name": "860",
     "category": "ตู้เหลือง",
-    "stock": 23
+    "stock": 23,
+    "reorderPoint": 0
   },
   {
     "id": 106,
     "name": "4114",
     "category": "ตู้เหลือง",
-    "stock": 4
+    "stock": 4,
+    "reorderPoint": 0
   },
   {
     "id": 107,
     "name": "ด้ามขัน18นิ้ว",
     "category": "ตู้เหลือง",
-    "stock": 0
+    "stock": 0,
+    "reorderPoint": 0
   },
   {
     "id": 108,
     "name": "แปรงเหอผิง",
     "category": "ตู้เหลือง",
-    "stock": 9
+    "stock": 9,
+    "reorderPoint": 0
   },
   {
     "id": 109,
     "name": "ทวิน3บาท",
     "category": "ตู้เหลือง",
-    "stock": 40
+    "stock": 40,
+    "reorderPoint": 0
   },
   {
     "id": 110,
     "name": "เลื่อย ws05B",
     "category": "ตู้เหลือง",
-    "stock": 4
+    "stock": 4,
+    "reorderPoint": 0
   },
   {
     "id": 111,
     "name": "เทปพันเกลียว",
     "category": "ตู้เหลือง",
-    "stock": 72
+    "stock": 72,
+    "reorderPoint": 0
   },
   {
     "id": 112,
     "name": "แหวนข้าง8-24",
     "category": "ตู้เหลือง",
-    "stock": 2
+    "stock": 2,
+    "reorderPoint": 0
   },
   {
     "id": 113,
     "name": "แหวนข้าง8-24mtt",
     "category": "ตู้เหลือง",
-    "stock": 13
+    "stock": 13,
+    "reorderPoint": 0
   },
   {
     "id": 114,
     "name": "สิงทอง30s",
     "category": "ตู้เหลือง",
-    "stock": 7
+    "stock": 7,
+    "reorderPoint": 0
   },
   {
     "id": 115,
     "name": "สิงทอง50s",
     "category": "ตู้เหลือง",
-    "stock": 1
+    "stock": 1,
+    "reorderPoint": 0
   }
 ]

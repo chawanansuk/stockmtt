@@ -17,29 +17,31 @@ app.get('/api/products', (req, res) => {
 
 // เพิ่มสินค้าใหม่
 app.post('/api/products', (req, res) => {
-  const { name, category, stock } = req.body || {};
+  const { name, category, stock, reorderPoint } = req.body || {};
   if (!name || !String(name).trim()) return res.status(400).json({ error: 'ต้องระบุชื่อสินค้า' });
-  res.json(store.addProduct({ name, category, stock }));
+  res.json(store.addProduct({ name, category, stock, reorderPoint }));
 });
 
-// ปรับยอดคงเหลือ (ตั้งค่า/แก้ไข)
-app.post('/api/products/:id/stock', (req, res) => {
-  const stock = Number(req.body?.stock);
-  if (!Number.isFinite(stock)) return res.status(400).json({ error: 'จำนวนไม่ถูกต้อง' });
-  const p = store.setStock(req.params.id, stock);
+// แก้ไขสินค้า (ยอดคงเหลือ / จุดสั่งซื้อ / ชื่อ / หมวด)
+app.post('/api/products/:id', (req, res) => {
+  const p = store.updateProduct(req.params.id, req.body || {});
   if (!p) return res.status(404).json({ error: 'ไม่พบสินค้า' });
   res.json(p);
 });
 
-// อ่านรูปด้วย AI (ยังไม่ตัดสต๊อก — แค่คืนรายการให้ตรวจ)
+// อ่านรูปด้วย AI (ยังไม่บันทึก — แค่คืนรายการให้ตรวจ)
 app.post('/api/extract', async (req, res) => {
   try {
-    const { image } = req.body || {};
+    const { image, mode } = req.body || {};
     if (!image) return res.status(400).json({ error: 'ไม่มีรูปภาพ' });
     const m = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]*)$/.exec(image);
     if (!m) return res.status(400).json({ error: 'รูปภาพไม่ถูกต้อง' });
 
-    const data = await extractFromImage({ mediaType: m[1], base64: m[2] });
+    const data = await extractFromImage({
+      mediaType: m[1],
+      base64: m[2],
+      mode: mode === 'receive' ? 'receive' : 'deduct',
+    });
 
     const items = (data.items || []).map((it) => {
       const p = it.productId ? store.getProduct(it.productId) : null;
@@ -60,16 +62,28 @@ app.post('/api/extract', async (req, res) => {
   }
 });
 
-// ยืนยันตัดสต๊อก
+// ยืนยันบันทึก (ตัดออก หรือ รับเข้า)
 app.post('/api/commit', (req, res) => {
-  const { items, note, date } = req.body || {};
+  const { items, note, date, type } = req.body || {};
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'ไม่มีรายการ' });
-  const tx = store.commit({ items, note: note || '', date: date || '' });
-  if (!tx) return res.status(400).json({ error: 'ไม่มีรายการที่ตัดได้' });
+  const tx = store.commit({
+    items,
+    note: note || '',
+    date: date || '',
+    type: type === 'receive' ? 'receive' : 'deduct',
+  });
+  if (!tx) return res.status(400).json({ error: 'ไม่มีรายการที่บันทึกได้' });
   res.json({ transaction: tx, products: store.getProducts() });
 });
 
-// ประวัติการตัดสต๊อก
+// ยกเลิกรายการ (คืนสต๊อก)
+app.post('/api/transactions/:id/void', (req, res) => {
+  const tx = store.voidTransaction(req.params.id);
+  if (!tx) return res.status(404).json({ error: 'ไม่พบรายการ' });
+  res.json({ transaction: tx, products: store.getProducts() });
+});
+
+// ประวัติการเคลื่อนไหวสต๊อก
 app.get('/api/transactions', (req, res) => {
   res.json(store.getTransactions());
 });

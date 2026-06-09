@@ -1,0 +1,2 @@
+# stockmtt
+stockโกดัง

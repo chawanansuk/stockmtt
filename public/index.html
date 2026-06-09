@@ -16,7 +16,11 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header><h1>📦 จัดการสต๊อกสินค้า</h1></header>
+  <header>
+    <h1>📦 จัดการสต๊อกสินค้า</h1>
+    <button id="btn-logout" class="logout-btn" hidden>ออกจากระบบ</button>
+  </header>
+  <div id="auth-warning" class="warn-banner" hidden>⚠️ ยังไม่ได้ตั้งรหัสผ่าน — ใครมีลิงก์ก็เข้าใช้งานได้ (ตั้ง APP_PASSWORD เพื่อเปิดระบบล็อกอิน)</div>
 
   <nav class="tabs">
     <button class="tab active" data-tab="deduct">ตัด/รับ</button>
@@ -90,11 +94,16 @@
     </section>
   </main>
 
+  <div id="login-overlay" class="overlay" hidden>
+    <form id="login-form" class="login-card">
+      <h2>🔒 เข้าสู่ระบบ</h2>
+      <p class="muted small">ใส่รหัสผ่านร้านเพื่อใช้งาน</p>
+      <input type="password" id="login-password" placeholder="รหัสผ่าน" autocomplete="current-password" />
+      <button type="submit" class="primary big">เข้าสู่ระบบ</button>
+      <p id="login-error" class="status error"></p>
+    </form>
+  </div>
+
   <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
-    }
-  </script>
 </body>
 </html>

@@ -15,6 +15,7 @@
 - ✏️ แก้ไขชื่อ/หมวด และลบสินค้าได้ในหน้าเว็บ
 - 📤 ส่งออกสต๊อก/ประวัติเป็นไฟล์ Excel (.csv รองรับภาษาไทย)
 - 🧠 ระบบจำคำย่อ: ยิ่งยืนยันรายการ AI ยิ่งจับคู่คำที่เคยเจอแม่นขึ้น
+- 🔒 ล็อกอินด้วยรหัสผ่านร่วม (ตั้ง `APP_PASSWORD`) + security headers + จำกัดอัตราการเรียก API
 
 ---
 
@@ -24,7 +25,7 @@
 
 1. ติดตั้ง **Node.js** (เวอร์ชัน 22 ขึ้นไป) จาก https://nodejs.org
 2. ตั้งค่า API key: คัดลอก `.env.example` เป็น `.env` แล้วใส่ `ANTHROPIC_API_KEY`
-   (ขอ key ที่ https://platform.claude.com)
+   (ขอ key ที่ https://platform.claude.com) — ถ้าต้องการให้ล็อกอินก่อนใช้ ใส่ `APP_PASSWORD` ด้วย
 3. เปิดแอพ:
    - **Windows:** ดับเบิลคลิก `start.bat`
    - **Mac/Linux:** เปิด Terminal แล้วรัน `bash start.sh`
@@ -48,9 +49,10 @@
 1. สมัคร https://render.com (ฟรี)
 2. กด **New +** → **Web Service** → เชื่อม GitHub repo `chawanansuk/stockmtt`
    (Render จะอ่านไฟล์ `render.yaml` ให้อัตโนมัติ)
-3. ตั้งค่า **Environment Variables** 2 ตัว:
+3. ตั้งค่า **Environment Variables**:
    - `ANTHROPIC_API_KEY` = key จาก Claude
    - `DATABASE_URL` = connection string จาก Neon (ขั้นที่ 1)
+   - `APP_PASSWORD` = รหัสผ่านร่วมสำหรับเข้าเว็บ (แนะนำให้ตั้ง — กันคนนอกเข้าใช้/เปลืองเครดิต AI)
 4. กด **Create / Deploy** รอสักครู่
 5. เปิดลิงก์ที่ได้ เช่น `https://stockmtt.onrender.com` ใช้งานได้เลยทุกที่
 
@@ -85,6 +87,8 @@ npm run import -- /path/to/รายการสินค้า.xlsx
 ```
 server.js              เซิร์ฟเวอร์ + API
 lib/claude.js          เรียก Claude อ่านรูป + จับคู่สินค้า
+lib/auth.js            ระบบล็อกอิน (รหัสผ่านร่วม + session cookie)
+lib/errors.js          คลาส error ที่ส่งข้อความให้ผู้ใช้ได้อย่างปลอดภัย
 lib/store.js           เลือกที่เก็บข้อมูลอัตโนมัติ (Postgres ถ้ามี DATABASE_URL, ไม่งั้น JSON)
 lib/store-pg.js        ที่เก็บข้อมูลแบบ PostgreSQL (ออนไลน์)
 lib/store-json.js      ที่เก็บข้อมูลแบบไฟล์ JSON (ในเครื่อง)

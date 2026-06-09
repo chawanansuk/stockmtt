@@ -246,3 +246,29 @@ select, input[type="text"], input[type="number"], input[type="search"] {
   background: #fff; color: var(--red); border: 1px solid var(--red);
   border-radius: 8px; padding: 9px 12px; cursor: pointer; font-size: 14px; flex: 0 0 auto;
 }
+
+/* ===== ยืนยันตัวตน / login ===== */
+header { position: relative; }
+.logout-btn {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.18); color: #fff; border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer;
+}
+.warn-banner {
+  background: #fff3cd; color: #7a5b00; border-bottom: 1px solid #ffe08a;
+  padding: 8px 14px; font-size: 13px; text-align: center;
+}
+.overlay {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000;
+}
+.login-card {
+  background: #fff; border-radius: 16px; padding: 24px 20px; width: 100%; max-width: 360px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); text-align: center;
+}
+.login-card h2 { margin: 0 0 4px; }
+.login-card input {
+  width: 100%; margin: 14px 0; padding: 12px; font-size: 16px;
+  border: 1px solid var(--line); border-radius: 10px;
+}
+.login-card .primary { width: 100%; }

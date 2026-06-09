@@ -1,3 +1,8 @@
+// ลงทะเบียน service worker (PWA) — ย้ายมาจาก index.html เพื่อให้ CSP เข้มขึ้นได้
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) =>
@@ -12,6 +17,7 @@ async function api(path, opts) {
   const res = await fetch(path, opts);
   if (!res.ok) {
     const e = await res.json().catch(() => ({}));
+    if (res.status === 401 && e.code === 'AUTH') { showLogin(); throw new Error('ต้องเข้าสู่ระบบ'); }
     throw new Error(e.error || 'HTTP ' + res.status);
   }
   return res.json();
@@ -603,13 +609,60 @@ $('#btn-export-history').addEventListener('click', async () => {
   downloadCSV(`history-${todayStr()}.csv`, rows);
 });
 
+// ---------- ยืนยันตัวตน (รหัสผ่านร่วม) ----------
+function showLogin() {
+  $('#login-overlay').hidden = false;
+  $('#btn-logout').hidden = true;
+  setTimeout(() => $('#login-password').focus(), 50);
+}
+function hideLogin() {
+  $('#login-overlay').hidden = true;
+}
+
+$('#login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#login-form button');
+  const errEl = $('#login-error');
+  errEl.textContent = '';
+  btn.disabled = true;
+  try {
+    await api('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: $('#login-password').value }),
+    });
+    $('#login-password').value = '';
+    hideLogin();
+    $('#btn-logout').hidden = false;
+    await loadData();
+  } catch (err) {
+    errEl.textContent = err.message || 'เข้าสู่ระบบไม่สำเร็จ';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('#btn-logout').addEventListener('click', async () => {
+  try { await api('/api/logout', { method: 'POST' }); } catch {}
+  location.reload();
+});
+
 // ---------- เริ่มทำงาน ----------
-(async function init() {
+async function loadData() {
   try {
     PRODUCTS = await api('/api/products');
     updateLowBadge();
   } catch (err) {
-    setStatus('โหลดรายการสินค้าไม่ได้: ' + err.message, true);
+    if (err.message !== 'ต้องเข้าสู่ระบบ') setStatus('โหลดรายการสินค้าไม่ได้: ' + err.message, true);
   }
   updateModeUI();
+}
+
+(async function boot() {
+  let sess = { authEnabled: false, authed: true };
+  try { sess = await api('/api/session'); } catch {}
+  if (sess.authEnabled && !sess.authed) { showLogin(); return; }
+  if (!sess.authEnabled) $('#auth-warning').hidden = false;
+  if (sess.authEnabled && sess.authed) $('#btn-logout').hidden = false;
+  await loadData();
 })();

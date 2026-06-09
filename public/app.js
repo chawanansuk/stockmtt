@@ -13,14 +13,58 @@ let MODE = 'deduct'; // 'deduct' = ตัดออก, 'receive' = รับเ�
 let currentImage = null;
 let extractedDate = '';
 
-async function api(path, opts) {
-  const res = await fetch(path, opts);
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    if (res.status === 401 && e.code === 'AUTH') { showLogin(); throw new Error('ต้องเข้าสู่ระบบ'); }
-    throw new Error(e.error || 'HTTP ' + res.status);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const skeleton = (n) => '<div class="skel"></div>'.repeat(n);
+
+// แบนเนอร์ "เซิร์ฟเวอร์กำลังเริ่ม" จะโผล่ถ้าคำขอช้าผิดปกติ (Render free ตื่นจากพักหลับ)
+let wakingTimer = null;
+let wakingCount = 0;
+function wakingStart() {
+  wakingCount++;
+  if (!wakingTimer) wakingTimer = setTimeout(() => { const b = $('#waking-banner'); if (b) b.hidden = false; }, 3500);
+}
+function wakingStop() {
+  wakingCount = Math.max(0, wakingCount - 1);
+  if (wakingCount === 0) {
+    if (wakingTimer) { clearTimeout(wakingTimer); wakingTimer = null; }
+    const b = $('#waking-banner'); if (b) b.hidden = true;
   }
-  return res.json();
+}
+
+// fetch + JSON พร้อม timeout และ retry (เฉพาะ GET ที่ปลอดภัย) กัน cold-start ค้าง
+async function api(path, opts = {}) {
+  const isGet = !opts.method || opts.method === 'GET';
+  const { timeout = 45000, retries = isGet ? 2 : 0, ...fetchOpts } = opts;
+  let lastErr;
+  wakingStart();
+  try {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeout);
+      try {
+        const res = await fetch(path, { ...fetchOpts, signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          if (res.status === 401 && e.code === 'AUTH') { showLogin(); throw new Error('ต้องเข้าสู่ระบบ'); }
+          if ([502, 503, 504].includes(res.status) && attempt < retries) { lastErr = new Error(e.error || 'HTTP ' + res.status); await wait(1000 * 2 ** attempt); continue; }
+          throw new Error(e.error || 'HTTP ' + res.status);
+        }
+        return await res.json();
+      } catch (err) {
+        clearTimeout(timer);
+        if (err.message === 'ต้องเข้าสู่ระบบ') throw err;
+        lastErr = err.name === 'AbortError'
+          ? new Error('เซิร์ฟเวอร์ตอบช้า (อาจกำลังตื่นจากพักหลับ) ลองใหม่อีกครั้ง')
+          : err;
+        if (attempt < retries) { await wait(1000 * 2 ** attempt); continue; }
+        throw lastErr;
+      }
+    }
+    throw lastErr;
+  } finally {
+    wakingStop();
+  }
 }
 
 const isLow = (p) => {
@@ -521,7 +565,7 @@ $('#btn-add-product').addEventListener('click', async () => {
 // ---------- ประวัติ ----------
 async function renderHistory() {
   const list = $('#history-list');
-  list.innerHTML = '<p class="muted">กำลังโหลด...</p>';
+  list.innerHTML = skeleton(4);
   try {
     const txs = await api('/api/transactions');
     if (!txs.length) { list.innerHTML = '<p class="muted">ยังไม่มีประวัติ</p>'; return; }

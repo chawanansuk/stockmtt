@@ -43,6 +43,9 @@ app.get('/manifest.webmanifest', (req, res) =>
 );
 app.use(express.static(path.join(__dirname, 'public')));
 
+// health check (ไม่ต้องล็อกอิน) — ใช้สำหรับ keep-alive / ปลุกเซิร์ฟเวอร์จากพักหลับ
+app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));
+
 // ---------- rate limiting ----------
 const limiterMsg = (msg) => ({ error: msg });
 const loginLimiter = rateLimit({

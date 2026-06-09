@@ -156,9 +156,12 @@ app.post('/api/extract', extractLimiter, wrap(async (req, res) => {
     mode: mode === 'receive' ? 'receive' : 'deduct',
   });
 
+  // ดึงสินค้าทั้งหมดครั้งเดียวแล้วจับคู่ด้วย Map (กัน N+1 query)
+  const products = await store.getProducts();
+  const byId = new Map(products.map((p) => [p.id, p]));
   const items = [];
   for (const it of data.items || []) {
-    const p = it.productId ? await store.getProduct(it.productId) : null;
+    const p = it.productId ? byId.get(Number(it.productId)) : null;
     items.push({
       rawText: it.rawText || '',
       quantity: Number(it.quantity) || 1,

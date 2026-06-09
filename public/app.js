@@ -567,6 +567,11 @@ function makeStockItem(p) {
   return row;
 }
 
+const STOCK_PAGE = 40;
+let stockView = [];
+let stockShown = 0;
+let stockObserver = null;
+
 function renderStock() {
   refreshCategories();
   const q = $('#stock-search').value.trim().toLowerCase();
@@ -574,8 +579,6 @@ function renderStock() {
   const onlyNeg = $('#filter-neg').checked;
   const cat = $('#filter-category').value;
   const sort = $('#sort-by').value;
-  const list = $('#stock-list');
-  list.innerHTML = '';
 
   let items = PRODUCTS.filter(
     (p) => !q || p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
@@ -583,16 +586,48 @@ function renderStock() {
   if (cat) items = items.filter((p) => (p.category || '') === cat);
   if (onlyLow) items = items.filter(isLow);
   if (onlyNeg) items = items.filter((p) => (Number(p.stock) || 0) < 0);
-
   if (sort === 'name') items = [...items].sort((a, b) => a.name.localeCompare(b.name, 'th'));
   else if (sort === 'stock-asc') items = [...items].sort((a, b) => (a.stock || 0) - (b.stock || 0));
   else if (sort === 'stock-desc') items = [...items].sort((a, b) => (b.stock || 0) - (a.stock || 0));
 
   $('#stock-count').textContent = `สินค้า ${items.length} / ${PRODUCTS.length} รายการ`;
-  for (const p of items) list.appendChild(makeStockItem(p));
+
+  // render เป็นชุด ๆ (กัน DOM หนักตอนมีหลายร้อยรายการ — โหลดต่อเมื่อเลื่อนใกล้ท้าย)
+  stockView = items;
+  stockShown = 0;
+  $('#stock-list').innerHTML = '';
+  appendStockBatch();
+}
+
+function appendStockBatch() {
+  const list = $('#stock-list');
+  const old = $('#stock-sentinel');
+  if (old) old.remove();
+  const end = Math.min(stockShown + STOCK_PAGE, stockView.length);
+  const frag = document.createDocumentFragment();
+  for (let i = stockShown; i < end; i++) frag.appendChild(makeStockItem(stockView[i]));
+  list.appendChild(frag);
+  stockShown = end;
+
+  if (stockObserver) { stockObserver.disconnect(); stockObserver = null; }
+  if (stockShown < stockView.length) {
+    const sentinel = document.createElement('div');
+    sentinel.id = 'stock-sentinel';
+    list.appendChild(sentinel);
+    stockObserver = new IntersectionObserver(
+      (entries) => { if (entries.some((e) => e.isIntersecting)) appendStockBatch(); },
+      { rootMargin: '400px' }
+    );
+    stockObserver.observe(sentinel);
+  }
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 const onFilterChange = () => { saveFilters(); renderStock(); };
-$('#stock-search').addEventListener('input', onFilterChange);
+$('#stock-search').addEventListener('input', debounce(onFilterChange, 200));
 $('#filter-low').addEventListener('change', onFilterChange);
 $('#filter-neg').addEventListener('change', onFilterChange);
 $('#filter-category').addEventListener('change', onFilterChange);

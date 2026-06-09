@@ -289,13 +289,16 @@ $('#btn-commit').addEventListener('click', async () => {
   }
   if (!items.length) { alert('ยังไม่มีรายการ (เลือกสินค้าและใส่จำนวน)'); return; }
 
+  const actor = $('#actor').value.trim();
+  try { localStorage.setItem('stockmtt.actor', actor); } catch {}
+
   const btn = $('#btn-commit');
   btn.disabled = true;
   try {
     const out = await api('/api/commit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, note: $('#deduct-note').value, date: extractedDate, type: MODE }),
+      body: JSON.stringify({ items, note: $('#deduct-note').value, date: extractedDate, type: MODE, actor }),
     });
     PRODUCTS = out.products;
     updateLowBadge();
@@ -633,6 +636,7 @@ $('#filter-neg').addEventListener('change', onFilterChange);
 $('#filter-category').addEventListener('change', onFilterChange);
 $('#sort-by').addEventListener('change', onFilterChange);
 loadFilters();
+try { $('#actor').value = localStorage.getItem('stockmtt.actor') || ''; } catch {}
 
 $('#btn-add-product').addEventListener('click', async () => {
   const name = $('#add-name').value.trim();
@@ -677,6 +681,8 @@ async function renderHistory() {
         `<div class="tx-head"><span>${when}${tx.date ? ' • ใบลงวันที่ ' + esc(tx.date) : ''}</span>` +
         `<span class="tx-type ${tx.type}">${verb}${tx.voided ? ' • ยกเลิกแล้ว' : ''}</span></div>` +
         (tx.note ? `<div class="muted small">📝 ${esc(tx.note)}</div>` : '') +
+        (tx.actor ? `<div class="muted small">👤 โดย ${esc(tx.actor)}</div>` : '') +
+        (tx.voided && tx.voidedBy ? `<div class="muted small">↩ ยกเลิกโดย ${esc(tx.voidedBy)}</div>` : '') +
         `<ul>${rows}</ul>`;
 
       if (!tx.voided) {
@@ -687,7 +693,11 @@ async function renderHistory() {
           if (!confirm('ยกเลิกรายการนี้และคืนสต๊อกกลับ?')) return;
           btn.disabled = true;
           try {
-            const out = await api(`/api/transactions/${tx.id}/void`, { method: 'POST' });
+            const out = await api(`/api/transactions/${tx.id}/void`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ by: localStorage.getItem('stockmtt.actor') || '' }),
+            });
             PRODUCTS = out.products;
             updateLowBadge();
             renderHistory();
@@ -735,13 +745,13 @@ $('#btn-export-history').addEventListener('click', async () => {
   let txs;
   try { txs = await api('/api/transactions'); } catch (err) { alert(err.message); return; }
   if (!txs.length) { alert('ยังไม่มีประวัติ'); return; }
-  const rows = [['วันเวลา', 'ประเภท', 'สถานะ', 'สินค้า', 'จำนวน', 'คงเหลือหลังทำ', 'หมายเหตุ', 'วันที่บนใบ']];
+  const rows = [['วันเวลา', 'ประเภท', 'สถานะ', 'สินค้า', 'จำนวน', 'คงเหลือหลังทำ', 'หมายเหตุ', 'วันที่บนใบ', 'ผู้ทำรายการ']];
   for (const tx of txs) {
     const when = new Date(tx.createdAt).toLocaleString('th-TH');
     const verb = tx.type === 'receive' ? 'รับเข้า' : 'ตัดออก';
     const status = tx.voided ? 'ยกเลิกแล้ว' : 'ปกติ';
     const sign = tx.type === 'receive' ? '+' : '-';
-    for (const it of tx.items) rows.push([when, verb, status, it.name, sign + it.quantity, it.after, tx.note || '', tx.date || '']);
+    for (const it of tx.items) rows.push([when, verb, status, it.name, sign + it.quantity, it.after, tx.note || '', tx.date || '', tx.actor || '']);
   }
   downloadCSV(`history-${todayStr()}.csv`, rows);
 });

@@ -48,10 +48,23 @@ check('alias saved from rawText (trimmed)', aliases.some((a) => a.text === 'ต�
 await pgstore.addAlias('  ABC  ', np.id);
 check('addAlias normalizes + upserts', (await pgstore.getAliases()).some((a) => a.text === 'abc' && a.productId === np.id));
 
-// ลบสินค้า
+// audit log: actor (ใครทำ) + voidedBy (ใครยกเลิก)
+const ax = await pgstore.commit({ items: [{ productId: first.id, quantity: 1 }], type: 'deduct', actor: 'ตั้ม' });
+check('commit เก็บ actor', ax.actor === 'ตั้ม');
+const av = await pgstore.voidTransaction(ax.id, 'แอน');
+check('void เก็บ voidedBy', av.voidedBy === 'แอน');
+
+// soft-delete: ลบแล้วซ่อนจาก getProducts แต่ยังหาเจอ by id และ void คืนสต๊อกได้
 check('deleteProduct returns true', (await pgstore.deleteProduct(np.id)) === true);
-check('deleted product gone', (await pgstore.getProduct(np.id)) === undefined);
+check('soft-delete หายจาก getProducts', (await pgstore.getProducts()).every((p) => p.id !== np.id));
+check('soft-delete ยังหาเจอ by id (สำหรับ void)', (await pgstore.getProduct(np.id))?.id === np.id);
 check('deleteProduct missing returns false', (await pgstore.deleteProduct(999999)) === false);
+
+const sp = await pgstore.addProduct({ name: 'จะลบ', category: 'x', stock: 10 });
+const sdx = await pgstore.commit({ items: [{ productId: sp.id, quantity: 3 }], type: 'deduct' });
+await pgstore.deleteProduct(sp.id);
+await pgstore.voidTransaction(sdx.id);
+check('void คืนสต๊อกสินค้าที่ถูกลบได้', (await pgstore.getProduct(sp.id)).stock === 10);
 
 console.log(`\n  ผลทดสอบ PG: ผ่าน ${pass} / ไม่ผ่าน ${fail}`);
 process.exit(fail ? 1 : 0);

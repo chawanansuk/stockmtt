@@ -177,7 +177,7 @@ app.post('/api/extract', extractLimiter, wrap(async (req, res) => {
 
 // ยืนยันบันทึก (ตัดออก หรือ รับเข้า)
 app.post('/api/commit', writeLimiter, wrap(async (req, res) => {
-  const { items, note, date, type } = req.body || {};
+  const { items, note, date, type, actor } = req.body || {};
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'ไม่มีรายการ' });
   if (items.length > MAX_ITEMS) return res.status(400).json({ error: 'รายการมากเกินไป' });
   for (const it of items) {
@@ -188,9 +188,10 @@ app.post('/api/commit', writeLimiter, wrap(async (req, res) => {
   }
   const tx = await store.commit({
     items,
-    note: note || '',
-    date: date || '',
+    note: (note || '').toString().slice(0, 500),
+    date: (date || '').toString().slice(0, 50),
     type: type === 'receive' ? 'receive' : 'deduct',
+    actor: (actor || '').toString().slice(0, 60),
   });
   if (!tx) return res.status(400).json({ error: 'ไม่มีรายการที่บันทึกได้' });
   res.json({ transaction: tx, products: await store.getProducts() });
@@ -198,7 +199,8 @@ app.post('/api/commit', writeLimiter, wrap(async (req, res) => {
 
 // ยกเลิกรายการ (คืนสต๊อก)
 app.post('/api/transactions/:id/void', writeLimiter, wrap(async (req, res) => {
-  const tx = await store.voidTransaction(req.params.id);
+  const by = ((req.body || {}).by || '').toString().slice(0, 60);
+  const tx = await store.voidTransaction(req.params.id, by);
   if (!tx) return res.status(404).json({ error: 'ไม่พบรายการ' });
   res.json({ transaction: tx, products: await store.getProducts() });
 }));

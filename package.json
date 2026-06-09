@@ -6,11 +6,20 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "import": "node scripts/import-xlsx.js"
+    "import": "node scripts/import-xlsx.js",
+    "test": "node test/store-pg.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.102.0",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.21.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "pg-mem": "^3.0.14"
   }
 }

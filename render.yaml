@@ -1,0 +1,16 @@
+# ตั้งค่าสำหรับ deploy ขึ้น Render (https://render.com) — แผนฟรี
+# เมื่อเชื่อม GitHub repo นี้กับ Render ระบบจะอ่านไฟล์นี้อัตโนมัติ
+services:
+  - type: web
+    name: stockmtt
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false        # ใส่ค่าเองในหน้า Dashboard ของ Render (เป็นความลับ)
+      - key: DATABASE_URL
+        sync: false        # ใส่ connection string จาก Neon (ฐานข้อมูลถาวร)
+      - key: NODE_VERSION
+        value: "22"

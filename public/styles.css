@@ -224,6 +224,7 @@ select, input[type="text"], input[type="number"], input[type="search"] {
 .tx-type { font-weight: 700; }
 .tx-type.receive { color: var(--green); }
 .tx-type.deduct { color: var(--red); }
+.tx-type.adjust { color: #b8860b; }
 .void-btn {
   margin-top: 8px; background: none; border: 1px solid var(--line); border-radius: 8px;
   padding: 8px 10px; color: var(--muted); font-size: 13px; cursor: pointer;

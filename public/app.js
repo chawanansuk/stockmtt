@@ -500,7 +500,7 @@ function makeStockItem(p) {
       const updated = await api(`/api/products/${p.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: newStock, reorderPoint: newReorder }),
+        body: JSON.stringify({ stock: newStock, reorderPoint: newReorder, actor: localStorage.getItem('stockmtt.actor') || '' }),
       });
       p.stock = updated.stock;
       p.reorderPoint = updated.reorderPoint;
@@ -724,10 +724,17 @@ async function renderHistory() {
     list.innerHTML = '';
     for (const tx of txs) {
       const when = new Date(tx.createdAt).toLocaleString('th-TH');
-      const sign = tx.type === 'receive' ? '+' : '−';
-      const verb = tx.type === 'receive' ? 'รับเข้า' : 'ตัดออก';
+      const isAdjust = tx.type === 'adjust';
+      const verb = tx.type === 'receive' ? 'รับเข้า' : isAdjust ? 'ปรับยอด' : 'ตัดออก';
       const rows = tx.items
-        .map((i) => `<li>${esc(i.name)} <b>${sign}${i.quantity}</b> (เหลือ ${i.after})</li>`)
+        .map((i) => {
+          if (isAdjust) {
+            const d = Number(i.quantity);
+            return `<li>${esc(i.name)} <b>${i.before} → ${i.after}</b> <span class="muted">(${d >= 0 ? '+' : ''}${d})</span></li>`;
+          }
+          const sign = tx.type === 'receive' ? '+' : '−';
+          return `<li>${esc(i.name)} <b>${sign}${i.quantity}</b> (เหลือ ${i.after})</li>`;
+        })
         .join('');
 
       const div = document.createElement('div');
@@ -803,12 +810,40 @@ $('#btn-export-history').addEventListener('click', async () => {
   const rows = [['วันเวลา', 'ประเภท', 'สถานะ', 'สินค้า', 'จำนวน', 'คงเหลือหลังทำ', 'หมายเหตุ', 'วันที่บนใบ', 'ผู้ทำรายการ']];
   for (const tx of txs) {
     const when = new Date(tx.createdAt).toLocaleString('th-TH');
-    const verb = tx.type === 'receive' ? 'รับเข้า' : 'ตัดออก';
+    const isAdjust = tx.type === 'adjust';
+    const verb = tx.type === 'receive' ? 'รับเข้า' : isAdjust ? 'ปรับยอด' : 'ตัดออก';
     const status = tx.voided ? 'ยกเลิกแล้ว' : 'ปกติ';
-    const sign = tx.type === 'receive' ? '+' : '-';
-    for (const it of tx.items) rows.push([when, verb, status, it.name, sign + it.quantity, it.after, tx.note || '', tx.date || '', tx.actor || '']);
+    for (const it of tx.items) {
+      const qtyStr = isAdjust
+        ? (Number(it.quantity) >= 0 ? '+' : '') + it.quantity
+        : (tx.type === 'receive' ? '+' : '-') + it.quantity;
+      rows.push([when, verb, status, it.name, qtyStr, it.after, tx.note || '', tx.date || '', tx.actor || '']);
+    }
   }
   downloadCSV(`history-${todayStr()}.csv`, rows);
+});
+
+// สำรองข้อมูลทั้งหมดเป็นไฟล์ JSON (เก็บไว้กันฐานข้อมูลมีปัญหา)
+$('#btn-backup').addEventListener('click', async () => {
+  const btn = $('#btn-backup');
+  btn.disabled = true;
+  try {
+    const data = await api('/api/backup');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stockmtt-backup-${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('ดาวน์โหลดข้อมูลสำรองแล้ว');
+  } catch (err) {
+    alert('สำรองข้อมูลไม่สำเร็จ: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 // ---------- ยืนยันตัวตน (รหัสผ่านร่วม) ----------

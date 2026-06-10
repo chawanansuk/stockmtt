@@ -129,9 +129,11 @@ app.post('/api/products', writeLimiter, wrap(async (req, res) => {
 
 // แก้ไขสินค้า (ยอดคงเหลือ / จุดสั่งซื้อ / ชื่อ / หมวด)
 app.post('/api/products/:id', writeLimiter, wrap(async (req, res) => {
-  const verr = validProductFields(req.body || {});
+  const body = req.body || {};
+  const verr = validProductFields(body);
   if (verr) return res.status(400).json({ error: verr });
-  const p = await store.updateProduct(req.params.id, req.body || {});
+  const actor = (body.actor || '').toString().slice(0, 60); // ใครแก้ยอด (ลงประวัติปรับยอด)
+  const p = await store.updateProduct(req.params.id, body, actor);
   if (!p) return res.status(404).json({ error: 'ไม่พบสินค้า' });
   res.json(p);
 }));
@@ -208,6 +210,11 @@ app.post('/api/transactions/:id/void', writeLimiter, wrap(async (req, res) => {
 // ประวัติการเคลื่อนไหวสต๊อก
 app.get('/api/transactions', wrap(async (req, res) => {
   res.json(await store.getTransactions());
+}));
+
+// สำรองข้อมูลทั้งหมด (JSON ครบทุกตาราง) — เผื่อฐานข้อมูลมีปัญหาจะกู้คืนได้
+app.get('/api/backup', wrap(async (req, res) => {
+  res.json(await store.exportAll());
 }));
 
 function lanUrls(port) {

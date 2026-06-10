@@ -242,6 +242,14 @@ select, input[type="text"], input[type="number"], input[type="search"] {
   cursor: pointer; padding: 4px 10px; font-size: 15px; line-height: 1; flex: 0 0 auto;
 }
 .edit-toggle.open { background: #eef3ff; color: var(--primary); border-color: var(--primary); }
+.item-head .info { flex: 1 1 auto; min-width: 0; }
+.hist-toggle {
+  background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--muted);
+  cursor: pointer; padding: 4px 10px; font-size: 15px; line-height: 1; flex: 0 0 auto;
+}
+.link-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 13px; padding: 0 2px; text-decoration: underline; flex: 0 0 auto; }
+#history-product-filter { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.filter-bar input[type="date"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; background: var(--card); }
 
 /* แผงแก้ไขชื่อ/หมวด + ลบ */
 .edit-panel { border-top: 1px dashed var(--line); padding-top: 6px; }

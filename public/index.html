@@ -103,8 +103,21 @@
 
     <!-- ===== ประวัติ ===== -->
     <section id="tab-history" class="panel">
-      <button id="btn-export-history" class="ghost">📤 ส่งออกประวัติเป็น Excel (.csv)</button>
+      <div id="history-product-filter" class="info-banner" hidden></div>
+      <div class="filter-bar">
+        <select id="history-type" class="sort-select">
+          <option value="">ทุกประเภท</option>
+          <option value="deduct">ตัดออก</option>
+          <option value="receive">รับเข้า</option>
+          <option value="adjust">ปรับยอด</option>
+        </select>
+        <label class="filter-row"><span>จาก</span> <input type="date" id="history-from" /></label>
+        <label class="filter-row"><span>ถึง</span> <input type="date" id="history-to" /></label>
+        <button id="history-clear" class="clear-btn" type="button">ล้าง</button>
+      </div>
+      <button id="btn-export-history" class="ghost">📤 ส่งออกประวัติทั้งหมดเป็น Excel (.csv)</button>
       <div id="history-list"></div>
+      <button id="history-more" class="ghost" hidden>โหลดเพิ่มประวัติ</button>
     </section>
   </main>
 

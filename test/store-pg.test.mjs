@@ -102,5 +102,16 @@ const backup = await pgstore.exportAll();
 check('exportAll มี products/transactions/aliases', Array.isArray(backup.products) && Array.isArray(backup.transactions) && Array.isArray(backup.aliases));
 check('exportAll รวมสินค้าที่ถูกลบด้วย', backup.products.some((p) => p.id === delProd.id && p.deleted === true));
 
+// P6: getTransactions กรอง/แบ่งหน้า (ไม่ส่ง opts = คืนทั้งหมด)
+const allTx = await pgstore.getTransactions();
+check('getTransactions() คืนทั้งหมด (backward-compat)', allTx.length > 5);
+const onlyAdjust = await pgstore.getTransactions({ type: 'adjust' });
+check('กรอง type=adjust', onlyAdjust.length > 0 && onlyAdjust.every((t) => t.type === 'adjust'));
+const firstPage = await pgstore.getTransactions({ limit: 3 });
+check('limit=3 คืน 3 รายการ', firstPage.length === 3);
+check('เรียง id มาก→น้อย', firstPage[0].id > firstPage[2].id);
+const nextPage = await pgstore.getTransactions({ limit: 3, before: firstPage[2].id });
+check('before(cursor) ได้หน้าถัดไป', nextPage.every((t) => t.id < firstPage[2].id));
+
 console.log(`\n  ผลทดสอบ PG: ผ่าน ${pass} / ไม่ผ่าน ${fail}`);
 process.exit(fail ? 1 : 0);

@@ -207,9 +207,17 @@ app.post('/api/transactions/:id/void', writeLimiter, wrap(async (req, res) => {
   res.json({ transaction: tx, products: await store.getProducts() });
 }));
 
-// ประวัติการเคลื่อนไหวสต๊อก
+// ประวัติการเคลื่อนไหวสต๊อก — กรอง/แบ่งหน้าได้ (ไม่ส่ง query = คืนทั้งหมด เช่นตอนส่งออก CSV)
 app.get('/api/transactions', wrap(async (req, res) => {
-  res.json(await store.getTransactions());
+  const q = req.query || {};
+  const opts = {};
+  if (q.limit) opts.limit = Math.min(Math.max(Number(q.limit) || 0, 1), 500);
+  if (q.before) opts.before = Number(q.before);
+  if (q.type === 'deduct' || q.type === 'receive' || q.type === 'adjust') opts.type = q.type;
+  if (q.productId) opts.productId = Number(q.productId);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(q.from || '')) opts.from = q.from;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(q.to || '')) opts.to = q.to;
+  res.json(await store.getTransactions(opts));
 }));
 
 // สำรองข้อมูลทั้งหมด (JSON ครบทุกตาราง) — เผื่อฐานข้อมูลมีปัญหาจะกู้คืนได้

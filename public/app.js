@@ -449,6 +449,16 @@ function makeStockItem(p) {
   info.appendChild(nm);
   info.appendChild(cat);
 
+  const histToggle = document.createElement('button');
+  histToggle.className = 'hist-toggle';
+  histToggle.textContent = '📜';
+  histToggle.title = 'ดูการเคลื่อนไหวของสินค้านี้';
+  histToggle.addEventListener('click', () => {
+    historyProductId = p.id;
+    historyProductName = p.name;
+    $('.tab[data-tab="history"]').click(); // สลับไปแท็บประวัติ → renderHistory จะกรองตาม productId
+  });
+
   const editToggle = document.createElement('button');
   editToggle.className = 'edit-toggle';
   editToggle.textContent = '✎';
@@ -457,6 +467,7 @@ function makeStockItem(p) {
   const head = document.createElement('div');
   head.className = 'item-head';
   head.appendChild(info);
+  head.appendChild(histToggle);
   head.appendChild(editToggle);
 
   // ยอดคงเหลือ / จุดสั่งซื้อ / บันทึก
@@ -714,68 +725,125 @@ $('#btn-add-product').addEventListener('click', async () => {
   }
 });
 
-// ---------- ประวัติ ----------
-async function renderHistory() {
-  const list = $('#history-list');
-  list.innerHTML = skeleton(4);
-  try {
-    const txs = await api('/api/transactions');
-    if (!txs.length) { list.innerHTML = '<p class="muted">ยังไม่มีประวัติ</p>'; return; }
-    list.innerHTML = '';
-    for (const tx of txs) {
-      const when = new Date(tx.createdAt).toLocaleString('th-TH');
-      const isAdjust = tx.type === 'adjust';
-      const verb = tx.type === 'receive' ? 'รับเข้า' : isAdjust ? 'ปรับยอด' : 'ตัดออก';
-      const rows = tx.items
-        .map((i) => {
-          if (isAdjust) {
-            const d = Number(i.quantity);
-            return `<li>${esc(i.name)} <b>${i.before} → ${i.after}</b> <span class="muted">(${d >= 0 ? '+' : ''}${d})</span></li>`;
-          }
-          const sign = tx.type === 'receive' ? '+' : '−';
-          return `<li>${esc(i.name)} <b>${sign}${i.quantity}</b> (เหลือ ${i.after})</li>`;
-        })
-        .join('');
+// ---------- ประวัติ (กรอง + แบ่งหน้า) ----------
+const HISTORY_PAGE = 50;
+let historyProductId = null;
+let historyProductName = '';
+let historyCursor = null; // id ของรายการสุดท้ายที่โหลด (ใช้เป็น cursor "before")
+let historyEnded = false;
+let historyLoading = false;
 
-      const div = document.createElement('div');
-      div.className = 'tx' + (tx.voided ? ' voided' : '');
-      div.innerHTML =
-        `<div class="tx-head"><span>${when}${tx.date ? ' • ใบลงวันที่ ' + esc(tx.date) : ''}</span>` +
-        `<span class="tx-type ${tx.type}">${verb}${tx.voided ? ' • ยกเลิกแล้ว' : ''}</span></div>` +
-        (tx.note ? `<div class="muted small">📝 ${esc(tx.note)}</div>` : '') +
-        (tx.actor ? `<div class="muted small">👤 โดย ${esc(tx.actor)}</div>` : '') +
-        (tx.voided && tx.voidedBy ? `<div class="muted small">↩ ยกเลิกโดย ${esc(tx.voidedBy)}</div>` : '') +
-        `<ul>${rows}</ul>`;
-
-      if (!tx.voided) {
-        const btn = document.createElement('button');
-        btn.className = 'void-btn';
-        btn.textContent = '↩ ยกเลิก (คืนสต๊อก)';
-        btn.addEventListener('click', async () => {
-          if (!confirm('ยกเลิกรายการนี้และคืนสต๊อกกลับ?')) return;
-          btn.disabled = true;
-          try {
-            const out = await api(`/api/transactions/${tx.id}/void`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ by: localStorage.getItem('stockmtt.actor') || '' }),
-            });
-            PRODUCTS = out.products;
-            updateLowBadge();
-            renderHistory();
-          } catch (err) {
-            alert(err.message);
-            btn.disabled = false;
-          }
-        });
-        div.appendChild(btn);
+function makeTxCard(tx) {
+  const when = new Date(tx.createdAt).toLocaleString('th-TH');
+  const isAdjust = tx.type === 'adjust';
+  const verb = tx.type === 'receive' ? 'รับเข้า' : isAdjust ? 'ปรับยอด' : 'ตัดออก';
+  const rows = tx.items
+    .map((i) => {
+      if (isAdjust) {
+        const d = Number(i.quantity);
+        return `<li>${esc(i.name)} <b>${i.before} → ${i.after}</b> <span class="muted">(${d >= 0 ? '+' : ''}${d})</span></li>`;
       }
-      list.appendChild(div);
-    }
+      const sign = tx.type === 'receive' ? '+' : '−';
+      return `<li>${esc(i.name)} <b>${sign}${i.quantity}</b> (เหลือ ${i.after})</li>`;
+    })
+    .join('');
+
+  const div = document.createElement('div');
+  div.className = 'tx' + (tx.voided ? ' voided' : '');
+  div.innerHTML =
+    `<div class="tx-head"><span>${when}${tx.date ? ' • ใบลงวันที่ ' + esc(tx.date) : ''}</span>` +
+    `<span class="tx-type ${tx.type}">${verb}${tx.voided ? ' • ยกเลิกแล้ว' : ''}</span></div>` +
+    (tx.note ? `<div class="muted small">📝 ${esc(tx.note)}</div>` : '') +
+    (tx.actor ? `<div class="muted small">👤 โดย ${esc(tx.actor)}</div>` : '') +
+    (tx.voided && tx.voidedBy ? `<div class="muted small">↩ ยกเลิกโดย ${esc(tx.voidedBy)}</div>` : '') +
+    `<ul>${rows}</ul>`;
+
+  if (!tx.voided) {
+    const btn = document.createElement('button');
+    btn.className = 'void-btn';
+    btn.textContent = '↩ ยกเลิก (คืนสต๊อก)';
+    btn.addEventListener('click', async () => {
+      if (!confirm('ยกเลิกรายการนี้และคืนสต๊อกกลับ?')) return;
+      btn.disabled = true;
+      try {
+        const out = await api(`/api/transactions/${tx.id}/void`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ by: localStorage.getItem('stockmtt.actor') || '' }),
+        });
+        PRODUCTS = out.products;
+        updateLowBadge();
+        renderHistory();
+      } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+      }
+    });
+    div.appendChild(btn);
+  }
+  return div;
+}
+
+function historyQuery(before) {
+  const params = new URLSearchParams();
+  params.set('limit', String(HISTORY_PAGE));
+  const type = $('#history-type').value;
+  const from = $('#history-from').value;
+  const to = $('#history-to').value;
+  if (type) params.set('type', type);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (historyProductId) params.set('productId', String(historyProductId));
+  if (before) params.set('before', String(before));
+  return '/api/transactions?' + params.toString();
+}
+
+async function renderHistory(reset = true) {
+  const list = $('#history-list');
+  const moreBtn = $('#history-more');
+  if (historyLoading) return;
+  historyLoading = true;
+  moreBtn.hidden = true;
+
+  // แบนเนอร์ "กรองเฉพาะสินค้า"
+  const pf = $('#history-product-filter');
+  if (historyProductId) {
+    pf.innerHTML = `🔎 เฉพาะ: <b>${esc(historyProductName)}</b> <button id="history-pf-clear" class="link-btn">✕ ดูทั้งหมด</button>`;
+    pf.hidden = false;
+    $('#history-pf-clear').addEventListener('click', () => { historyProductId = null; historyProductName = ''; renderHistory(); });
+  } else {
+    pf.hidden = true;
+  }
+
+  if (reset) { historyCursor = null; historyEnded = false; list.innerHTML = skeleton(4); }
+  try {
+    const txs = await api(historyQuery(reset ? null : historyCursor));
+    if (reset) list.innerHTML = '';
+    if (reset && !txs.length) { list.innerHTML = '<p class="muted">ไม่พบประวัติ</p>'; return; }
+    for (const tx of txs) list.appendChild(makeTxCard(tx));
+    if (txs.length) historyCursor = txs[txs.length - 1].id;
+    historyEnded = txs.length < HISTORY_PAGE;
+    moreBtn.hidden = historyEnded;
   } catch (err) {
-    list.innerHTML = `<p class="status error">${esc(err.message)}</p>`;
+    if (reset) list.innerHTML = `<p class="status error">${esc(err.message)}</p>`;
+    else alert(err.message);
+  } finally {
+    historyLoading = false;
   }
 }
+
+$('#history-more').addEventListener('click', () => renderHistory(false));
+$('#history-type').addEventListener('change', () => renderHistory());
+$('#history-from').addEventListener('change', () => renderHistory());
+$('#history-to').addEventListener('change', () => renderHistory());
+$('#history-clear').addEventListener('click', () => {
+  $('#history-type').value = '';
+  $('#history-from').value = '';
+  $('#history-to').value = '';
+  historyProductId = null;
+  historyProductName = '';
+  renderHistory();
+});
 
 // ---------- ส่งออก Excel (.csv รองรับภาษาไทย) ----------
 function csvCell(v) {

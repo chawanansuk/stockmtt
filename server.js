@@ -7,7 +7,8 @@ import * as store from './lib/store.js';
 import { extractFromImage } from './lib/claude.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { authEnabled, signToken, verifyToken, checkPassword, readCookie, COOKIE_NAME, MAX_AGE_MS } from './lib/auth.js';
+import { authEnabled, signToken, verifyToken, checkPassword, readCookie, COOKIE_NAME, MAX_AGE_MS, adminPinEnabled, checkAdminPin } from './lib/auth.js';
+import { lineEnabled, maybeDailyNotify, sendTestNow } from './lib/notify.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -44,7 +45,11 @@ app.get('/manifest.webmanifest', (req, res) =>
 app.use(express.static(path.join(__dirname, 'public')));
 
 // health check (ไม่ต้องล็อกอิน) — ใช้สำหรับ keep-alive / ปลุกเซิร์ฟเวอร์จากพักหลับ
-app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));
+// แอบเช็คแจ้งเตือนรายวันไปด้วย (ตัว ping ภายนอกจะช่วยให้ส่งตรงเวลาแม้ไม่มีคนเปิดเว็บ)
+app.get('/healthz', (req, res) => {
+  maybeDailyNotify().catch(() => {});
+  res.json({ ok: true, ts: Date.now() });
+});
 
 // ---------- rate limiting ----------
 const limiterMsg = (msg) => ({ error: msg });
@@ -77,7 +82,12 @@ app.post('/api/logout', (req, res) => {
 });
 
 app.get('/api/session', (req, res) => {
-  res.json({ authEnabled: authEnabled(), authed: !authEnabled() || verifyToken(readCookie(req, COOKIE_NAME)) });
+  maybeDailyNotify().catch(() => {});
+  res.json({
+    authEnabled: authEnabled(),
+    authed: !authEnabled() || verifyToken(readCookie(req, COOKIE_NAME)),
+    line: lineEnabled(),
+  });
 });
 
 // ด่านตรวจ: ทุก /api/* ใต้บรรทัดนี้ต้องล็อกอินก่อน (ถ้าตั้ง APP_PASSWORD ไว้)
@@ -86,6 +96,14 @@ app.use('/api', (req, res, next) => {
   if (verifyToken(readCookie(req, COOKIE_NAME))) return next();
   res.status(401).json({ error: 'กรุณาเข้าสู่ระบบก่อนใช้งาน', code: 'AUTH' });
 });
+
+// ด่าน PIN เจ้าของ (เปิดเมื่อตั้ง APP_ADMIN_PIN): ล็อกการกระทำสำคัญ
+// พนักงานยังตัด/รับของได้ปกติ — แต่แก้/ลบสินค้า ยกเลิกรายการ ปรับยอด ต้องใส่ PIN
+const requireAdmin = (req, res, next) => {
+  if (!adminPinEnabled()) return next();
+  if (checkAdminPin(req.get('x-admin-pin') || (req.body || {}).adminPin)) return next();
+  res.status(403).json({ error: 'การกระทำนี้ต้องใช้ PIN เจ้าของ', code: 'PIN' });
+};
 
 // ตัวช่วยจับ error ใน async route
 // - AppError (err.expose) → แสดงข้อความที่ตั้งใจให้ผู้ใช้เห็น
@@ -130,7 +148,7 @@ app.post('/api/products', writeLimiter, wrap(async (req, res) => {
 }));
 
 // แก้ไขสินค้า (ยอดคงเหลือ / จุดสั่งซื้อ / ชื่อ / หมวด)
-app.post('/api/products/:id', writeLimiter, wrap(async (req, res) => {
+app.post('/api/products/:id', writeLimiter, requireAdmin, wrap(async (req, res) => {
   const body = req.body || {};
   const verr = validProductFields(body);
   if (verr) return res.status(400).json({ error: verr });
@@ -141,7 +159,7 @@ app.post('/api/products/:id', writeLimiter, wrap(async (req, res) => {
 }));
 
 // ลบสินค้า
-app.delete('/api/products/:id', writeLimiter, wrap(async (req, res) => {
+app.delete('/api/products/:id', writeLimiter, requireAdmin, wrap(async (req, res) => {
   const ok = await store.deleteProduct(req.params.id);
   if (!ok) return res.status(404).json({ error: 'ไม่พบสินค้า' });
   res.json({ ok: true });
@@ -181,7 +199,7 @@ app.post('/api/extract', extractLimiter, wrap(async (req, res) => {
 
 // ยืนยันบันทึก (ตัดออก หรือ รับเข้า)
 app.post('/api/commit', writeLimiter, wrap(async (req, res) => {
-  const { items, note, date, type, actor } = req.body || {};
+  const { items, note, date, type, actor, slipImage } = req.body || {};
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'ไม่มีรายการ' });
   if (items.length > MAX_ITEMS) return res.status(400).json({ error: 'รายการมากเกินไป' });
   for (const it of items) {
@@ -190,19 +208,29 @@ app.post('/api/commit', writeLimiter, wrap(async (req, res) => {
     const pid = Number(it?.productId);
     if (!Number.isInteger(pid) || pid <= 0) return res.status(400).json({ error: 'รหัสสินค้าไม่ถูกต้อง' });
   }
+  // รูปใบแนบ (ไม่บังคับ): ตรวจรูปแบบ dataURL + จำกัดขนาด ~1.5MB
+  let img = '';
+  if (slipImage) {
+    if (typeof slipImage !== 'string' || slipImage.length > 2_000_000 ||
+        !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(slipImage)) {
+      return res.status(400).json({ error: 'รูปใบแนบไม่ถูกต้อง' });
+    }
+    img = slipImage;
+  }
   const tx = await store.commit({
     items,
     note: (note || '').toString().slice(0, 500),
     date: (date || '').toString().slice(0, 50),
     type: type === 'receive' ? 'receive' : 'deduct',
     actor: (actor || '').toString().slice(0, 60),
+    slipImage: img,
   });
   if (!tx) return res.status(400).json({ error: 'ไม่มีรายการที่บันทึกได้' });
   res.json({ transaction: tx, products: await store.getProducts() });
 }));
 
 // ยกเลิกรายการ (คืนสต๊อก)
-app.post('/api/transactions/:id/void', writeLimiter, wrap(async (req, res) => {
+app.post('/api/transactions/:id/void', writeLimiter, requireAdmin, wrap(async (req, res) => {
   const by = ((req.body || {}).by || '').toString().slice(0, 60);
   const tx = await store.voidTransaction(req.params.id, by);
   if (!tx) return res.status(404).json({ error: 'ไม่พบรายการ' });
@@ -210,7 +238,7 @@ app.post('/api/transactions/:id/void', writeLimiter, wrap(async (req, res) => {
 }));
 
 // ยกเลิกเฉพาะบางแถวในใบ (คืนสต๊อกเฉพาะแถวนั้น)
-app.post('/api/transactions/:id/void-item', writeLimiter, wrap(async (req, res) => {
+app.post('/api/transactions/:id/void-item', writeLimiter, requireAdmin, wrap(async (req, res) => {
   const body = req.body || {};
   const idx = Number(body.index);
   if (!Number.isInteger(idx) || idx < 0) return res.status(400).json({ error: 'รายการไม่ถูกต้อง' });
@@ -221,7 +249,7 @@ app.post('/api/transactions/:id/void-item', writeLimiter, wrap(async (req, res) 
 }));
 
 // นับสต๊อกจริง: ปรับยอดหลายรายการในใบเดียว (เฉพาะตัวที่นับได้ต่างจากระบบ)
-app.post('/api/stocktake', writeLimiter, wrap(async (req, res) => {
+app.post('/api/stocktake', writeLimiter, requireAdmin, wrap(async (req, res) => {
   const { items, actor } = req.body || {};
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'ไม่มีรายการนับ' });
   if (items.length > 2000) return res.status(400).json({ error: 'รายการมากเกินไป' });
@@ -246,6 +274,19 @@ app.get('/api/transactions', wrap(async (req, res) => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(q.from || '')) opts.from = q.from;
   if (/^\d{4}-\d{2}-\d{2}$/.test(q.to || '')) opts.to = q.to;
   res.json(await store.getTransactions(opts));
+}));
+
+// รูปใบจริงที่แนบไว้กับรายการ
+app.get('/api/transactions/:id/image', wrap(async (req, res) => {
+  const img = await store.getTxImage(req.params.id);
+  if (!img) return res.status(404).json({ error: 'ไม่มีรูปแนบ (อาจถูกล้างเพราะเก่าเกินโควต้าเก็บ)' });
+  res.json({ image: img });
+}));
+
+// ทดสอบส่งแจ้งเตือน LINE ทันที (เช็คว่าตั้งค่า token ถูก)
+app.post('/api/notify/test', writeLimiter, wrap(async (req, res) => {
+  await sendTestNow();
+  res.json({ ok: true });
 }));
 
 // สำรองข้อมูลทั้งหมด (JSON ครบทุกตาราง) — เผื่อฐานข้อมูลมีปัญหาจะกู้คืนได้

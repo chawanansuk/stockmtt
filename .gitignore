@@ -3,3 +3,5 @@ node_modules/
 *.tmp
 data/transactions.json
 data/aliases.json
+data/kv.json
+data/images/

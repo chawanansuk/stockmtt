@@ -37,9 +37,15 @@ function wakingStop() {
 }
 
 // fetch + JSON พร้อม timeout และ retry (เฉพาะ GET ที่ปลอดภัย) กัน cold-start ค้าง
+// แนบ PIN เจ้าของอัตโนมัติ (ถ้าเคยใส่) และถามใหม่เมื่อเซิร์ฟเวอร์ขอ (403 PIN)
 async function api(path, opts = {}) {
   const isGet = !opts.method || opts.method === 'GET';
-  const { timeout = 45000, retries = isGet ? 2 : 0, ...fetchOpts } = opts;
+  const { timeout = 45000, retries = isGet ? 2 : 0, _pinRetried = false, ...fetchOpts } = opts;
+  const headers = { ...(fetchOpts.headers || {}) };
+  try {
+    const pin = sessionStorage.getItem('stockmtt.pin');
+    if (pin) headers['X-Admin-Pin'] = pin;
+  } catch {}
   let lastErr;
   wakingStart();
   try {
@@ -47,11 +53,22 @@ async function api(path, opts = {}) {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeout);
       try {
-        const res = await fetch(path, { ...fetchOpts, signal: ctrl.signal });
+        const res = await fetch(path, { ...fetchOpts, headers, signal: ctrl.signal });
         clearTimeout(timer);
         if (!res.ok) {
           const e = await res.json().catch(() => ({}));
           if (res.status === 401 && e.code === 'AUTH') { showLogin(); throw new Error('ต้องเข้าสู่ระบบ'); }
+          if (res.status === 403 && e.code === 'PIN') {
+            try { sessionStorage.removeItem('stockmtt.pin'); } catch {}
+            if (!_pinRetried) {
+              const pin = prompt('🔒 การกระทำนี้ต้องใช้ PIN เจ้าของ:');
+              if (pin) {
+                try { sessionStorage.setItem('stockmtt.pin', pin); } catch {}
+                return await api(path, { ...opts, _pinRetried: true });
+              }
+            }
+            throw new Error('PIN ไม่ถูกต้อง');
+          }
           if ([502, 503, 504].includes(res.status) && attempt < retries) { lastErr = new Error(e.error || 'HTTP ' + res.status); await wait(1000 * 2 ** attempt); continue; }
           throw new Error(e.error || 'HTTP ' + res.status);
         }
@@ -152,6 +169,29 @@ function fileToResizedDataURL(file, maxDim = 1600, quality = 0.85) {
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('โหลดรูปไม่สำเร็จ')); };
     img.src = url;
+  });
+}
+
+// ย่อ dataURL อีกชั้นสำหรับเก็บถาวร (เล็กกว่าที่ส่งให้ AI — กันฐานข้อมูลบวม)
+function shrinkDataURL(dataUrl, maxDim = 1000, quality = 0.7) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      const longEdge = Math.max(width, height);
+      if (longEdge > maxDim) {
+        const s = maxDim / longEdge;
+        width = Math.round(width * s);
+        height = Math.round(height * s);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(null); // ย่อไม่ได้ก็ไม่แนบ (ไม่ขวางการบันทึก)
+    img.src = dataUrl;
   });
 }
 
@@ -305,6 +345,7 @@ function renderReview(items) {
   list.innerHTML = '';
   for (const it of items) list.appendChild(makeReviewCard(it));
   $('#review-date').textContent = extractedDate ? 'วันที่บนใบ: ' + extractedDate : '';
+  $('#attach-row').hidden = !currentImage; // เพิ่มรายการเองโดยไม่มีรูป = ไม่มีอะไรให้แนบ
   updateModeUI();
   $('#review').hidden = false;
   $('#commit-result').hidden = true;
@@ -330,10 +371,12 @@ $('#btn-commit').addEventListener('click', async () => {
   const btn = $('#btn-commit');
   btn.disabled = true;
   try {
+    let slipImage = '';
+    if (currentImage && $('#attach-slip').checked) slipImage = (await shrinkDataURL(currentImage)) || '';
     const out = await api('/api/commit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, note: $('#deduct-note').value, date: extractedDate, type: MODE, actor }),
+      body: JSON.stringify({ items, note: $('#deduct-note').value, date: extractedDate, type: MODE, actor, slipImage }),
     });
     PRODUCTS = out.products;
     updateLowBadge();
@@ -959,6 +1002,24 @@ function makeTxCard(tx) {
   });
   div.appendChild(ul);
 
+  if (tx.hasImage) {
+    const imgBtn = document.createElement('button');
+    imgBtn.className = 'void-btn';
+    imgBtn.textContent = '🖼 ดูรูปใบ';
+    imgBtn.addEventListener('click', async () => {
+      imgBtn.disabled = true;
+      try {
+        const out = await api(`/api/transactions/${tx.id}/image`);
+        showImageOverlay(out.image);
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        imgBtn.disabled = false;
+      }
+    });
+    div.appendChild(imgBtn);
+  }
+
   if (!tx.voided) {
     const btn = document.createElement('button');
     btn.className = 'void-btn';
@@ -983,6 +1044,21 @@ function makeTxCard(tx) {
     div.appendChild(btn);
   }
   return div;
+}
+
+// แสดงรูปใบเต็มจอ (แตะที่ไหนก็ปิด)
+function showImageOverlay(src) {
+  let ov = $('#img-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'img-overlay';
+    ov.className = 'img-overlay';
+    ov.addEventListener('click', () => { ov.hidden = true; });
+    ov.appendChild(document.createElement('img'));
+    document.body.appendChild(ov);
+  }
+  $('img', ov).src = src;
+  ov.hidden = false;
 }
 
 function historyQuery(before) {
@@ -1099,6 +1175,20 @@ $('#btn-export-history').addEventListener('click', async () => {
   downloadCSV(`history-${todayStr()}.csv`, rows);
 });
 
+// ทดสอบแจ้งเตือน LINE (ปุ่มโชว์เฉพาะเมื่อเซิร์ฟเวอร์ตั้งค่า LINE แล้ว)
+$('#btn-line-test').addEventListener('click', async () => {
+  const btn = $('#btn-line-test');
+  btn.disabled = true;
+  try {
+    await api('/api/notify/test', { method: 'POST' });
+    showToast('ส่งแล้ว — เปิดดูใน LINE');
+  } catch (err) {
+    alert('ส่งไม่สำเร็จ: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 // สำรองข้อมูลทั้งหมดเป็นไฟล์ JSON (เก็บไว้กันฐานข้อมูลมีปัญหา)
 $('#btn-backup').addEventListener('click', async () => {
   const btn = $('#btn-backup');
@@ -1178,5 +1268,6 @@ async function loadData() {
   if (sess.authEnabled && !sess.authed) { showLogin(); return; }
   if (!sess.authEnabled) $('#auth-warning').hidden = false;
   if (sess.authEnabled && sess.authed) $('#btn-logout').hidden = false;
+  if (sess.line) $('#btn-line-test').hidden = false;
   await loadData();
 })();

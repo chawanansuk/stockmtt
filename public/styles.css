@@ -336,6 +336,13 @@ select, input[type="text"], input[type="number"], input[type="search"] {
 .count-diff { align-self: center; font-size: 14px; color: var(--muted); min-width: 70px; }
 .count-diff.neg { color: var(--red); font-weight: 600; }
 
+/* ===== ดูรูปใบที่แนบไว้ ===== */
+.img-overlay {
+  position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.88);
+  display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+}
+.img-overlay img { max-width: 96%; max-height: 92%; border-radius: 8px; }
+
 /* ===== ยกเลิกบางแถวในใบ ===== */
 .item-voided { text-decoration: line-through; color: var(--muted); }
 .item-void-btn {

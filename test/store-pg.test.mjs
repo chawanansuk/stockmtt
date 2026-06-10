@@ -158,5 +158,33 @@ await pgstore.voidTransaction(pwTx.id);
 check('void ทั้งใบหลัง partial: A คืนรอบเดียว (=100)', (await pgstore.getProduct(pvA.id)).stock === 100);
 check('void ทั้งใบหลัง partial: B คืนถูก (=200)', (await pgstore.getProduct(pvB.id)).stock === 200);
 
+// P8c: kv + รูปใบแนบ + hasImage
+await pgstore.setKV('k1', 'v1');
+check('kv set/get', (await pgstore.getKV('k1')) === 'v1');
+await pgstore.setKV('k1', 'v2');
+check('kv upsert ทับค่าเดิม', (await pgstore.getKV('k1')) === 'v2');
+check('kv ไม่มี → null', (await pgstore.getKV('none')) === null);
+
+const FAKE_IMG = 'data:image/jpeg;base64,' + 'A'.repeat(120);
+const imgTx = await pgstore.commit({ items: [{ productId: first.id, quantity: 1 }], type: 'deduct', slipImage: FAKE_IMG });
+check('commit พร้อมรูป → hasImage', imgTx.hasImage === true);
+check('getTxImage คืนรูปเดิม', (await pgstore.getTxImage(imgTx.id)) === FAKE_IMG);
+const listed = (await pgstore.getTransactions({ limit: 5 })).find((t) => t.id === imgTx.id);
+check('getTransactions ติดธง hasImage', listed?.hasImage === true);
+const noImgTx = await pgstore.commit({ items: [{ productId: first.id, quantity: 1 }], type: 'deduct' });
+check('ใบไม่มีรูป hasImage=false', (await pgstore.getTransactions({ limit: 5 })).find((t) => t.id === noImgTx.id)?.hasImage === false);
+check('getTxImage ไม่มีรูป → null', (await pgstore.getTxImage(noImgTx.id)) === null);
+
+// P8c: ข้อความแจ้งเตือน LINE (ฟังก์ชัน pure)
+const { buildLowStockMessage } = await import('../lib/notify.js');
+const msg = buildLowStockMessage([
+  { name: 'ท่อ32', stock: 2, reorderPoint: 5, unit: 'เส้น' },
+  { name: 'ปกติ', stock: 50, reorderPoint: 5 },
+  { name: 'ติดลบ', stock: -1, reorderPoint: 0 },
+], '2026-06-10');
+check('LINE msg มีเฉพาะของใกล้หมด เรียงน้อย→มาก', !!msg && msg.includes('2 รายการ') && msg.indexOf('ติดลบ') < msg.indexOf('ท่อ32') && !msg.includes('ปกติ'));
+check('LINE msg มีหน่วย+จุดสั่ง', msg.includes('เหลือ 2 เส้น (จุดสั่ง 5)'));
+check('LINE msg ไม่มีของใกล้หมด → null', buildLowStockMessage([{ name: 'ok', stock: 9, reorderPoint: 1 }]) === null);
+
 console.log(`\n  ผลทดสอบ PG: ผ่าน ${pass} / ไม่ผ่าน ${fail}`);
 process.exit(fail ? 1 : 0);

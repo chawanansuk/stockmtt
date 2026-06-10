@@ -64,6 +64,9 @@
           <span>ผู้ทำรายการ (ใคร) — ไม่บังคับ</span>
           <input type="text" id="actor" placeholder="เช่น ตั้ม / แอน" autocomplete="name" />
         </label>
+        <label class="filter-row" id="attach-row" hidden>
+          <input type="checkbox" id="attach-slip" checked /> <span>🖼 แนบรูปใบนี้ไว้ดูย้อนหลังในประวัติ</span>
+        </label>
 
         <button id="btn-commit" class="primary big">✅ ยืนยัน</button>
       </div>
@@ -101,6 +104,7 @@
       <button id="btn-stocktake" class="ghost">📋 เริ่มนับสต๊อกจริง (เทียบกับระบบ)</button>
       <button id="btn-export-stock" class="ghost">📤 ส่งออกสต๊อกเป็น Excel (.csv)</button>
       <button id="btn-backup" class="ghost">💾 ดาวน์โหลดข้อมูลสำรอง (JSON)</button>
+      <button id="btn-line-test" class="ghost" hidden>📨 ทดสอบแจ้งเตือน LINE</button>
       <div id="stock-list"></div>
     </section>
 

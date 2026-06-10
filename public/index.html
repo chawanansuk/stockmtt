@@ -92,6 +92,8 @@
         <label class="field"><span>ชื่อสินค้า</span><input type="text" id="add-name" /></label>
         <label class="field"><span>หมวด</span><input type="text" id="add-category" /></label>
         <label class="field"><span>จำนวนเริ่มต้น</span><input type="number" id="add-stock" value="0" inputmode="numeric" /></label>
+        <label class="field"><span>หน่วยนับ (เช่น ตัว/เส้น/ถุง) — ไม่บังคับ</span><input type="text" id="add-unit" /></label>
+        <label class="field"><span>ราคาทุนต่อหน่วย (บาท) — ไม่บังคับ</span><input type="number" id="add-cost" value="0" min="0" step="0.01" inputmode="decimal" /></label>
         <button id="btn-add-product" class="primary">บันทึกสินค้า</button>
       </details>
       <p id="stock-count" class="muted small"></p>

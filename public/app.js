@@ -72,6 +72,9 @@ async function api(path, opts = {}) {
   }
 }
 
+const baht = (n) => '฿' + Number(n).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+const unitSuffix = (p) => (p && p.unit ? ' ' + p.unit : '');
+
 const isLow = (p) => {
   const s = Number(p.stock) || 0;
   const r = Number(p.reorderPoint) || 0;
@@ -213,7 +216,7 @@ function buildProductSelect(selectedId) {
     for (const p of byCat[cat]) {
       const o = document.createElement('option');
       o.value = String(p.id);
-      o.textContent = `${p.name} (คงเหลือ ${p.stock})`;
+      o.textContent = `${p.name} (คงเหลือ ${p.stock}${unitSuffix(p)})`;
       if (p.id === selectedId) o.selected = true;
       og.appendChild(o);
     }
@@ -284,7 +287,7 @@ function makeReviewCard(item) {
       const remain = (p.stock || 0) + delta;
       const sign = MODE === 'receive' ? '+' : '−';
       after.innerHTML =
-        `คงเหลือ ${p.stock} → <b class="${remain < 0 ? 'neg' : ''}">${remain}</b> <span class="muted">(${sign}${q})</span>` +
+        `คงเหลือ ${p.stock} → <b class="${remain < 0 ? 'neg' : ''}">${remain}</b> <span class="muted">(${sign}${q}${unitSuffix(p)})</span>` +
         (remain < 0 ? ' ⚠️ ติดลบ' : '');
     }
     updateCommitButton();
@@ -377,7 +380,7 @@ function renderReorderBanner() {
   const items = low
     .map(
       (p) =>
-        `<li>${esc(p.name)} <b>เหลือ ${p.stock}</b>` +
+        `<li>${esc(p.name)} <b>เหลือ ${p.stock}${esc(unitSuffix(p))}</b>` +
         (p.reorderPoint > 0 ? ` <span class="muted">(จุดสั่ง ${p.reorderPoint})</span>` : '') +
         `</li>`
     )
@@ -445,7 +448,13 @@ function makeStockItem(p) {
   nm.textContent = p.name;
   const cat = document.createElement('div');
   cat.className = 'cat';
-  cat.textContent = p.category || '';
+  const renderCatLine = () => {
+    const bits = [p.category || ''];
+    if (p.unit) bits.push('หน่วย: ' + p.unit);
+    if (p.cost > 0) bits.push(`ทุน ${baht(p.cost)} • มูลค่า ${baht((p.stock || 0) * p.cost)}`);
+    cat.textContent = bits.filter(Boolean).join(' • ');
+  };
+  renderCatLine();
   info.appendChild(nm);
   info.appendChild(cat);
 
@@ -476,7 +485,7 @@ function makeStockItem(p) {
 
   const sWrap = document.createElement('label');
   sWrap.className = 'mini';
-  sWrap.innerHTML = '<span>ยอดคงเหลือ</span>';
+  sWrap.innerHTML = `<span>ยอดคงเหลือ${p.unit ? ' (' + esc(p.unit) + ')' : ''}</span>`;
   const sInput = document.createElement('input');
   sInput.type = 'number';
   sInput.inputMode = 'numeric';
@@ -516,6 +525,8 @@ function makeStockItem(p) {
       p.stock = updated.stock;
       p.reorderPoint = updated.reorderPoint;
       row.className = 'stock-item' + (isLow(p) ? ' low' : '');
+      renderCatLine();
+      updateStockSummary();
       updateLowBadge();
       renderReorderBanner();
       showToast('บันทึกแล้ว');
@@ -551,6 +562,25 @@ function makeStockItem(p) {
   cInput.value = p.category || '';
   ceWrap.appendChild(cInput);
 
+  const uWrap = document.createElement('label');
+  uWrap.className = 'field';
+  uWrap.innerHTML = '<span>หน่วยนับ (เช่น ตัว/เส้น/ถุง)</span>';
+  const uInput = document.createElement('input');
+  uInput.type = 'text';
+  uInput.value = p.unit || '';
+  uWrap.appendChild(uInput);
+
+  const costWrap = document.createElement('label');
+  costWrap.className = 'field';
+  costWrap.innerHTML = '<span>ราคาทุนต่อหน่วย (บาท)</span>';
+  const costInput = document.createElement('input');
+  costInput.type = 'number';
+  costInput.min = '0';
+  costInput.step = '0.01';
+  costInput.inputMode = 'decimal';
+  costInput.value = p.cost || 0;
+  costWrap.appendChild(costInput);
+
   const editActions = document.createElement('div');
   editActions.className = 'edit-actions';
   const saveEdit = document.createElement('button');
@@ -563,15 +593,19 @@ function makeStockItem(p) {
   saveEdit.addEventListener('click', async () => {
     const name = nInput.value.trim();
     if (!name) { alert('ใส่ชื่อสินค้า'); return; }
+    const cost = Number(costInput.value);
+    if (costInput.value !== '' && (!Number.isFinite(cost) || cost < 0)) { alert('ราคาทุนไม่ถูกต้อง'); return; }
     saveEdit.disabled = true;
     try {
       const updated = await api(`/api/products/${p.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, category: cInput.value }),
+        body: JSON.stringify({ name, category: cInput.value, unit: uInput.value, cost: costInput.value === '' ? 0 : cost }),
       });
       p.name = updated.name;
       p.category = updated.category;
+      p.unit = updated.unit;
+      p.cost = updated.cost;
       renderStock();
       showToast('บันทึกการแก้ไขแล้ว');
     } catch (err) {
@@ -602,6 +636,8 @@ function makeStockItem(p) {
   editActions.appendChild(delBtn);
   edit.appendChild(neWrap);
   edit.appendChild(ceWrap);
+  edit.appendChild(uWrap);
+  edit.appendChild(costWrap);
   edit.appendChild(editActions);
 
   editToggle.addEventListener('click', () => {
@@ -638,15 +674,26 @@ function renderStock() {
   else if (sort === 'stock-asc') items = [...items].sort((a, b) => (a.stock || 0) - (b.stock || 0));
   else if (sort === 'stock-desc') items = [...items].sort((a, b) => (b.stock || 0) - (a.stock || 0));
 
-  $('#stock-count').textContent = `สินค้า ${items.length} / ${PRODUCTS.length} รายการ`;
-
   // render เป็นชุด ๆ (กัน DOM หนักตอนมีหลายร้อยรายการ — โหลดต่อเมื่อเลื่อนใกล้ท้าย)
   stockView = items;
+  updateStockSummary();
   stockShown = 0;
   const list = $('#stock-list');
   list.innerHTML = '';
   if (!items.length) { list.innerHTML = '<p class="muted">ไม่พบสินค้า</p>'; return; }
   appendStockBatch();
+}
+
+// จำนวน + มูลค่ารวม (ตามที่กรองอยู่) — โชว์มูลค่าเฉพาะเมื่อมีสินค้าที่ใส่ราคาทุนแล้ว
+function updateStockSummary() {
+  const value = stockView.reduce((s, p) => s + (p.cost > 0 ? (Number(p.stock) || 0) * p.cost : 0), 0);
+  const withCost = stockView.filter((p) => p.cost > 0).length;
+  let text = `สินค้า ${stockView.length} / ${PRODUCTS.length} รายการ`;
+  if (withCost > 0) {
+    text += ` • มูลค่ารวม ${baht(value)}`;
+    if (withCost < stockView.length) text += ` (จาก ${withCost} รายการที่ใส่ทุนแล้ว)`;
+  }
+  $('#stock-count').textContent = text;
 }
 
 function appendStockBatch() {
@@ -711,12 +758,20 @@ $('#btn-add-product').addEventListener('click', async () => {
     const p = await api('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, category: $('#add-category').value, stock: Number($('#add-stock').value) || 0 }),
+      body: JSON.stringify({
+        name,
+        category: $('#add-category').value,
+        stock: Number($('#add-stock').value) || 0,
+        unit: $('#add-unit').value,
+        cost: Number($('#add-cost').value) || 0,
+      }),
     });
     PRODUCTS.push(p);
     $('#add-name').value = '';
     $('#add-category').value = '';
     $('#add-stock').value = '0';
+    $('#add-unit').value = '';
+    $('#add-cost').value = '0';
     renderStock();
     updateLowBadge();
     showToast('เพิ่มสินค้าแล้ว');
@@ -744,7 +799,7 @@ function makeTxCard(tx) {
         return `<li>${esc(i.name)} <b>${i.before} → ${i.after}</b> <span class="muted">(${d >= 0 ? '+' : ''}${d})</span></li>`;
       }
       const sign = tx.type === 'receive' ? '+' : '−';
-      return `<li>${esc(i.name)} <b>${sign}${i.quantity}</b> (เหลือ ${i.after})</li>`;
+      return `<li>${esc(i.name)} <b>${sign}${i.quantity}${i.unit ? ' ' + esc(i.unit) : ''}</b> (เหลือ ${i.after})</li>`;
     })
     .join('');
 
@@ -866,8 +921,14 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 
 $('#btn-export-stock').addEventListener('click', () => {
   if (!PRODUCTS.length) { alert('ยังไม่มีสินค้า'); return; }
-  const rows = [['ชื่อสินค้า', 'หมวด/โกดัง', 'ยอดคงเหลือ', 'จุดสั่งซื้อ', 'ต้องสั่งซื้อ']];
-  for (const p of PRODUCTS) rows.push([p.name, p.category || '', p.stock, p.reorderPoint || 0, isLow(p) ? 'ใช่' : '']);
+  const rows = [['ชื่อสินค้า', 'หมวด/โกดัง', 'หน่วย', 'ยอดคงเหลือ', 'ราคาทุน/หน่วย', 'มูลค่า', 'จุดสั่งซื้อ', 'ต้องสั่งซื้อ']];
+  for (const p of PRODUCTS) {
+    rows.push([
+      p.name, p.category || '', p.unit || '', p.stock,
+      p.cost > 0 ? p.cost : '', p.cost > 0 ? (Number(p.stock) || 0) * p.cost : '',
+      p.reorderPoint || 0, isLow(p) ? 'ใช่' : '',
+    ]);
+  }
   downloadCSV(`stock-${todayStr()}.csv`, rows);
 });
 
@@ -875,7 +936,7 @@ $('#btn-export-history').addEventListener('click', async () => {
   let txs;
   try { txs = await api('/api/transactions'); } catch (err) { alert(err.message); return; }
   if (!txs.length) { alert('ยังไม่มีประวัติ'); return; }
-  const rows = [['วันเวลา', 'ประเภท', 'สถานะ', 'สินค้า', 'จำนวน', 'คงเหลือหลังทำ', 'หมายเหตุ', 'วันที่บนใบ', 'ผู้ทำรายการ']];
+  const rows = [['วันเวลา', 'ประเภท', 'สถานะ', 'สินค้า', 'จำนวน', 'หน่วย', 'คงเหลือหลังทำ', 'มูลค่า (ทุน ณ วันบันทึก)', 'หมายเหตุ', 'วันที่บนใบ', 'ผู้ทำรายการ']];
   for (const tx of txs) {
     const when = new Date(tx.createdAt).toLocaleString('th-TH');
     const isAdjust = tx.type === 'adjust';
@@ -885,7 +946,8 @@ $('#btn-export-history').addEventListener('click', async () => {
       const qtyStr = isAdjust
         ? (Number(it.quantity) >= 0 ? '+' : '') + it.quantity
         : (tx.type === 'receive' ? '+' : '-') + it.quantity;
-      rows.push([when, verb, status, it.name, qtyStr, it.after, tx.note || '', tx.date || '', tx.actor || '']);
+      const value = it.cost > 0 ? Math.abs(Number(it.quantity)) * it.cost : '';
+      rows.push([when, verb, status, it.name, qtyStr, it.unit || '', it.after, value, tx.note || '', tx.date || '', tx.actor || '']);
     }
   }
   downloadCSV(`history-${todayStr()}.csv`, rows);

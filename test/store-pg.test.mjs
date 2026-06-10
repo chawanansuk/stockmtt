@@ -113,5 +113,16 @@ check('เรียง id มาก→น้อย', firstPage[0].id > firstPage
 const nextPage = await pgstore.getTransactions({ limit: 3, before: firstPage[2].id });
 check('before(cursor) ได้หน้าถัดไป', nextPage.every((t) => t.id < firstPage[2].id));
 
+// P8a: หน่วยนับ + ราคาทุน (เพิ่ม/แก้/snapshot ลงประวัติ)
+const cp = await pgstore.addProduct({ name: 'ท่อทดสอบ', category: 'x', stock: 10, unit: 'เส้น', cost: 35.5 });
+check('addProduct เก็บ unit/cost', cp.unit === 'เส้น' && cp.cost === 35.5);
+const cpu = await pgstore.updateProduct(cp.id, { unit: 'ถุง', cost: 40 });
+check('updateProduct แก้ unit/cost', cpu.unit === 'ถุง' && cpu.cost === 40);
+const ctx = await pgstore.commit({ items: [{ productId: cp.id, quantity: 2 }], type: 'deduct' });
+check('commit snapshot unit/cost ณ เวลาบันทึก', ctx.items[0].unit === 'ถุง' && ctx.items[0].cost === 40);
+await pgstore.updateProduct(cp.id, { cost: 99 });
+const oldTx = (await pgstore.getTransactions({ productId: cp.id, type: 'deduct' }))[0];
+check('แก้ทุนทีหลัง ประวัติเดิมคงค่าเดิม', oldTx.items[0].cost === 40);
+
 console.log(`\n  ผลทดสอบ PG: ผ่าน ${pass} / ไม่ผ่าน ${fail}`);
 process.exit(fail ? 1 : 0);

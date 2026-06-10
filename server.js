@@ -102,13 +102,15 @@ const MAX_ITEMS = 500;
 function validProductFields(body) {
   if (body.name !== undefined && String(body.name).length > 200) return 'ชื่อสินค้ายาวเกินไป';
   if (body.category !== undefined && String(body.category).length > 100) return 'ชื่อหมวดยาวเกินไป';
-  for (const f of ['stock', 'reorderPoint']) {
+  if (body.unit !== undefined && String(body.unit).length > 30) return 'ชื่อหน่วยยาวเกินไป';
+  for (const f of ['stock', 'reorderPoint', 'cost']) {
     const v = body[f];
     if (v !== undefined && v !== '' && v !== null) {
       const n = Number(v);
       if (!Number.isFinite(n) || Math.abs(n) > 1e9) return 'ค่าตัวเลขไม่ถูกต้อง';
     }
   }
+  if (body.cost !== undefined && body.cost !== '' && body.cost !== null && Number(body.cost) < 0) return 'ราคาทุนต้องไม่ติดลบ';
   return null;
 }
 
@@ -120,11 +122,11 @@ app.get('/api/products', wrap(async (req, res) => {
 // เพิ่มสินค้าใหม่
 app.post('/api/products', writeLimiter, wrap(async (req, res) => {
   const body = req.body || {};
-  const { name, category, stock, reorderPoint } = body;
+  const { name, category, stock, reorderPoint, unit, cost } = body;
   if (!name || !String(name).trim()) return res.status(400).json({ error: 'ต้องระบุชื่อสินค้า' });
   const verr = validProductFields(body);
   if (verr) return res.status(400).json({ error: verr });
-  res.json(await store.addProduct({ name, category, stock, reorderPoint }));
+  res.json(await store.addProduct({ name, category, stock, reorderPoint, unit, cost }));
 }));
 
 // แก้ไขสินค้า (ยอดคงเหลือ / จุดสั่งซื้อ / ชื่อ / หมวด)

@@ -320,3 +320,25 @@ select, input[type="text"], input[type="number"], input[type="search"] {
   font-size: 22px; line-height: 1; cursor: pointer; z-index: 90;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
+
+/* ===== โหมดนับสต๊อกจริง ===== */
+.stocktake-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 95;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 14px;
+  background: var(--card); border-top: 2px solid var(--primary);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.12);
+}
+.stocktake-bar #stocktake-info { flex: 1 1 100%; color: var(--muted); }
+.stocktake-bar .primary { flex: 1 1 auto; }
+.stocktake-bar .primary { padding: 10px 14px; }
+.stock-item.counting .sys-stock { font-size: 18px; font-weight: 700; padding: 6px 0; }
+.stock-item.count-changed { border-color: var(--primary); background: #f3f7ff; }
+.count-diff { align-self: center; font-size: 14px; color: var(--muted); min-width: 70px; }
+.count-diff.neg { color: var(--red); font-weight: 600; }
+
+/* ===== ยกเลิกบางแถวในใบ ===== */
+.item-voided { text-decoration: line-through; color: var(--muted); }
+.item-void-btn {
+  margin-left: 8px; background: none; border: 1px solid var(--line); border-radius: 6px;
+  color: var(--red); cursor: pointer; font-size: 12px; padding: 1px 7px; line-height: 1.4;
+}

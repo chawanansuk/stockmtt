@@ -98,6 +98,7 @@
       </details>
       <p id="stock-count" class="muted small"></p>
       <p class="muted small">💡 ตั้ง “จุดสั่งซื้อ” มากกว่า 0 เพื่อเปิดแจ้งเตือนของใกล้หมด</p>
+      <button id="btn-stocktake" class="ghost">📋 เริ่มนับสต๊อกจริง (เทียบกับระบบ)</button>
       <button id="btn-export-stock" class="ghost">📤 ส่งออกสต๊อกเป็น Excel (.csv)</button>
       <button id="btn-backup" class="ghost">💾 ดาวน์โหลดข้อมูลสำรอง (JSON)</button>
       <div id="stock-list"></div>
@@ -122,6 +123,12 @@
       <button id="history-more" class="ghost" hidden>โหลดเพิ่มประวัติ</button>
     </section>
   </main>
+
+  <div id="stocktake-bar" class="stocktake-bar" hidden>
+    <span id="stocktake-info" class="small">นับแล้ว 0 รายการ</span>
+    <button id="stocktake-confirm" class="primary">✅ ปรับยอดตามที่นับ</button>
+    <button id="stocktake-cancel" class="ghost">ออก</button>
+  </div>
 
   <button id="to-top" class="to-top" hidden aria-label="กลับขึ้นบนสุด">↑</button>
 

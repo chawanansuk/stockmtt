@@ -209,6 +209,32 @@ app.post('/api/transactions/:id/void', writeLimiter, wrap(async (req, res) => {
   res.json({ transaction: tx, products: await store.getProducts() });
 }));
 
+// ยกเลิกเฉพาะบางแถวในใบ (คืนสต๊อกเฉพาะแถวนั้น)
+app.post('/api/transactions/:id/void-item', writeLimiter, wrap(async (req, res) => {
+  const body = req.body || {};
+  const idx = Number(body.index);
+  if (!Number.isInteger(idx) || idx < 0) return res.status(400).json({ error: 'รายการไม่ถูกต้อง' });
+  const by = (body.by || '').toString().slice(0, 60);
+  const tx = await store.voidTransactionItem(req.params.id, idx, by);
+  if (!tx) return res.status(404).json({ error: 'ไม่พบรายการ' });
+  res.json({ transaction: tx, products: await store.getProducts() });
+}));
+
+// นับสต๊อกจริง: ปรับยอดหลายรายการในใบเดียว (เฉพาะตัวที่นับได้ต่างจากระบบ)
+app.post('/api/stocktake', writeLimiter, wrap(async (req, res) => {
+  const { items, actor } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'ไม่มีรายการนับ' });
+  if (items.length > 2000) return res.status(400).json({ error: 'รายการมากเกินไป' });
+  for (const it of items) {
+    const pid = Number(it?.productId);
+    const counted = Number(it?.counted);
+    if (!Number.isInteger(pid) || pid <= 0) return res.status(400).json({ error: 'รหัสสินค้าไม่ถูกต้อง' });
+    if (!Number.isFinite(counted) || Math.abs(counted) > 1e9) return res.status(400).json({ error: 'จำนวนที่นับไม่ถูกต้อง' });
+  }
+  const tx = await store.stocktake(items, (actor || '').toString().slice(0, 60));
+  res.json({ transaction: tx, products: await store.getProducts() }); // tx = null ถ้านับตรงหมด
+}));
+
 // ประวัติการเคลื่อนไหวสต๊อก — กรอง/แบ่งหน้าได้ (ไม่ส่ง query = คืนทั้งหมด เช่นตอนส่งออก CSV)
 app.get('/api/transactions', wrap(async (req, res) => {
   const q = req.query || {};

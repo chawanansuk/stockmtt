@@ -436,7 +436,123 @@ function refreshCategories() {
   pendingCat = '';
 }
 
+// ---------- โหมดนับสต๊อกจริง ----------
+let STOCKTAKE = false;
+const stCounts = new Map(); // productId -> ค่าที่นับ (string) คงไว้ข้ามการค้นหา/กรอง
+
+function stDiffCount() {
+  let n = 0;
+  for (const [pid, v] of stCounts) {
+    const p = PRODUCTS.find((x) => x.id === pid);
+    if (p && Number(v) !== (Number(p.stock) || 0)) n++;
+  }
+  return n;
+}
+function updateStocktakeInfo() {
+  $('#stocktake-info').textContent = `นับแล้ว ${stCounts.size} • ต่างจากระบบ ${stDiffCount()} รายการ`;
+}
+function exitStocktake() {
+  STOCKTAKE = false;
+  stCounts.clear();
+  $('#stocktake-bar').hidden = true;
+  $('#btn-stocktake').hidden = false;
+  renderStock();
+}
+
+// การ์ดสินค้าในโหมดนับ: โชว์ยอดในระบบ + ช่องกรอกที่นับได้จริง + ส่วนต่าง
+function makeCountItem(p) {
+  const row = document.createElement('div');
+  row.className = 'stock-item counting';
+  const head = document.createElement('div');
+  head.className = 'item-head';
+  const info = document.createElement('div');
+  info.className = 'info';
+  info.innerHTML = `<div class="name">${esc(p.name)}</div><div class="cat">${esc(p.category || '')}</div>`;
+  head.appendChild(info);
+  row.appendChild(head);
+
+  const fields = document.createElement('div');
+  fields.className = 'sfields';
+  const sysWrap = document.createElement('div');
+  sysWrap.className = 'mini';
+  sysWrap.innerHTML = `<span>ในระบบ</span><div class="sys-stock">${p.stock}${esc(unitSuffix(p))}</div>`;
+  const ctWrap = document.createElement('label');
+  ctWrap.className = 'mini';
+  ctWrap.innerHTML = '<span>นับได้จริง</span>';
+  const ct = document.createElement('input');
+  ct.type = 'number';
+  ct.inputMode = 'numeric';
+  ct.placeholder = '-';
+  if (stCounts.has(p.id)) ct.value = stCounts.get(p.id);
+  ctWrap.appendChild(ct);
+  const diff = document.createElement('div');
+  diff.className = 'count-diff';
+
+  const renderDiff = () => {
+    const v = ct.value.trim();
+    if (v === '' || !Number.isFinite(Number(v))) { diff.textContent = ''; row.classList.remove('count-changed'); return; }
+    const d = Number(v) - (Number(p.stock) || 0);
+    diff.innerHTML = d === 0 ? '✓ ตรง' : `ต่าง <b>${d > 0 ? '+' : ''}${d}</b>`;
+    diff.classList.toggle('neg', d !== 0);
+    row.classList.toggle('count-changed', d !== 0);
+  };
+  ct.addEventListener('input', () => {
+    const v = ct.value.trim();
+    if (v === '') stCounts.delete(p.id);
+    else stCounts.set(p.id, v);
+    renderDiff();
+    updateStocktakeInfo();
+  });
+  renderDiff();
+
+  fields.appendChild(sysWrap);
+  fields.appendChild(ctWrap);
+  fields.appendChild(diff);
+  row.appendChild(fields);
+  return row;
+}
+
+$('#btn-stocktake').addEventListener('click', () => {
+  STOCKTAKE = true;
+  stCounts.clear();
+  $('#stocktake-bar').hidden = false;
+  $('#btn-stocktake').hidden = true;
+  updateStocktakeInfo();
+  renderStock();
+  showToast('โหมดนับสต๊อก: กรอกเฉพาะตัวที่นับ ตัวอื่นเว้นว่างได้');
+});
+$('#stocktake-cancel').addEventListener('click', () => {
+  if (stDiffCount() > 0 && !confirm('ออกจากโหมดนับโดยไม่ปรับยอด? ตัวเลขที่นับไว้จะหายไป')) return;
+  exitStocktake();
+});
+$('#stocktake-confirm').addEventListener('click', async () => {
+  if (!stCounts.size) { alert('ยังไม่ได้กรอกจำนวนที่นับ'); return; }
+  const diffN = stDiffCount();
+  if (diffN === 0) { showToast('ทุกรายการที่นับตรงกับระบบ ✓'); exitStocktake(); return; }
+  if (!confirm(`ปรับยอด ${diffN} รายการให้ตรงกับที่นับได้จริง?`)) return;
+  const items = [...stCounts].map(([productId, v]) => ({ productId, counted: Number(v) }));
+  const btn = $('#stocktake-confirm');
+  btn.disabled = true;
+  try {
+    const out = await api('/api/stocktake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, actor: localStorage.getItem('stockmtt.actor') || '' }),
+    });
+    PRODUCTS = out.products;
+    exitStocktake();
+    updateLowBadge();
+    renderReorderBanner();
+    showToast(out.transaction ? `ปรับยอดแล้ว ${out.transaction.items.length} รายการ` : 'ทุกรายการตรงกับระบบ');
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 function makeStockItem(p) {
+  if (STOCKTAKE) return makeCountItem(p);
   const row = document.createElement('div');
   row.className = 'stock-item' + (isLow(p) ? ' low' : '');
 
@@ -792,16 +908,6 @@ function makeTxCard(tx) {
   const when = new Date(tx.createdAt).toLocaleString('th-TH');
   const isAdjust = tx.type === 'adjust';
   const verb = tx.type === 'receive' ? 'รับเข้า' : isAdjust ? 'ปรับยอด' : 'ตัดออก';
-  const rows = tx.items
-    .map((i) => {
-      if (isAdjust) {
-        const d = Number(i.quantity);
-        return `<li>${esc(i.name)} <b>${i.before} → ${i.after}</b> <span class="muted">(${d >= 0 ? '+' : ''}${d})</span></li>`;
-      }
-      const sign = tx.type === 'receive' ? '+' : '−';
-      return `<li>${esc(i.name)} <b>${sign}${i.quantity}${i.unit ? ' ' + esc(i.unit) : ''}</b> (เหลือ ${i.after})</li>`;
-    })
-    .join('');
 
   const div = document.createElement('div');
   div.className = 'tx' + (tx.voided ? ' voided' : '');
@@ -810,8 +916,48 @@ function makeTxCard(tx) {
     `<span class="tx-type ${tx.type}">${verb}${tx.voided ? ' • ยกเลิกแล้ว' : ''}</span></div>` +
     (tx.note ? `<div class="muted small">📝 ${esc(tx.note)}</div>` : '') +
     (tx.actor ? `<div class="muted small">👤 โดย ${esc(tx.actor)}</div>` : '') +
-    (tx.voided && tx.voidedBy ? `<div class="muted small">↩ ยกเลิกโดย ${esc(tx.voidedBy)}</div>` : '') +
-    `<ul>${rows}</ul>`;
+    (tx.voided && tx.voidedBy ? `<div class="muted small">↩ ยกเลิกโดย ${esc(tx.voidedBy)}</div>` : '');
+
+  // รายการในใบ: ยกเลิกได้ทีละแถว (เมื่อใบยังไม่ถูกยกเลิกและมีมากกว่า 1 แถว)
+  const ul = document.createElement('ul');
+  tx.items.forEach((i, idx) => {
+    const li = document.createElement('li');
+    if (i.voided) li.className = 'item-voided';
+    if (isAdjust) {
+      const d = Number(i.quantity);
+      li.innerHTML = `${esc(i.name)} <b>${i.before} → ${i.after}</b> <span class="muted">(${d >= 0 ? '+' : ''}${d})</span>`;
+    } else {
+      const sign = tx.type === 'receive' ? '+' : '−';
+      li.innerHTML = `${esc(i.name)} <b>${sign}${i.quantity}${i.unit ? ' ' + esc(i.unit) : ''}</b> (เหลือ ${i.after})`;
+    }
+    if (i.voided) li.innerHTML += ' <span class="muted small">• ยกเลิกแถวนี้แล้ว</span>';
+    else if (!tx.voided && tx.items.length > 1) {
+      const x = document.createElement('button');
+      x.className = 'item-void-btn';
+      x.textContent = '✕';
+      x.title = 'ยกเลิกเฉพาะแถวนี้ (คืนสต๊อกรายการนี้)';
+      x.addEventListener('click', async () => {
+        if (!confirm(`ยกเลิกเฉพาะ "${i.name}" และคืนสต๊อกรายการนี้?`)) return;
+        x.disabled = true;
+        try {
+          const out = await api(`/api/transactions/${tx.id}/void-item`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ index: idx, by: localStorage.getItem('stockmtt.actor') || '' }),
+          });
+          PRODUCTS = out.products;
+          updateLowBadge();
+          renderHistory();
+        } catch (err) {
+          alert(err.message);
+          x.disabled = false;
+        }
+      });
+      li.appendChild(x);
+    }
+    ul.appendChild(li);
+  });
+  div.appendChild(ul);
 
   if (!tx.voided) {
     const btn = document.createElement('button');
@@ -941,8 +1087,8 @@ $('#btn-export-history').addEventListener('click', async () => {
     const when = new Date(tx.createdAt).toLocaleString('th-TH');
     const isAdjust = tx.type === 'adjust';
     const verb = tx.type === 'receive' ? 'รับเข้า' : isAdjust ? 'ปรับยอด' : 'ตัดออก';
-    const status = tx.voided ? 'ยกเลิกแล้ว' : 'ปกติ';
     for (const it of tx.items) {
+      const status = tx.voided ? 'ยกเลิกแล้ว' : it.voided ? 'ยกเลิกแถวนี้' : 'ปกติ';
       const qtyStr = isAdjust
         ? (Number(it.quantity) >= 0 ? '+' : '') + it.quantity
         : (tx.type === 'receive' ? '+' : '-') + it.quantity;

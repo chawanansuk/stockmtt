@@ -124,5 +124,39 @@ await pgstore.updateProduct(cp.id, { cost: 99 });
 const oldTx = (await pgstore.getTransactions({ productId: cp.id, type: 'deduct' }))[0];
 check('แก้ทุนทีหลัง ประวัติเดิมคงค่าเดิม', oldTx.items[0].cost === 40);
 
+// P8b: นับสต๊อกจริง (stocktake) — ปรับเฉพาะตัวที่ต่าง รวมเป็นใบเดียว + void คืนได้
+const sA = await pgstore.addProduct({ name: 'นับA', category: 'x', stock: 10 });
+const sB = await pgstore.addProduct({ name: 'นับB', category: 'x', stock: 20 });
+const stx = await pgstore.stocktake([
+  { productId: sA.id, counted: 7 },   // ต่าง -3
+  { productId: sB.id, counted: 20 },  // ตรง → ข้าม
+], 'คนนับ');
+check('stocktake ใบเดียว เฉพาะตัวที่ต่าง', stx.type === 'adjust' && stx.items.length === 1 && stx.note === 'นับสต๊อกจริง');
+check('stocktake ปรับยอดถูก (10→7)', (await pgstore.getProduct(sA.id)).stock === 7);
+check('stocktake ตัวที่ตรงไม่ขยับ', (await pgstore.getProduct(sB.id)).stock === 20);
+check('stocktake นับตรงหมด → null', (await pgstore.stocktake([{ productId: sB.id, counted: 20 }])) === null);
+await pgstore.voidTransaction(stx.id);
+check('void ใบนับสต๊อก คืนยอดเดิม (7→10)', (await pgstore.getProduct(sA.id)).stock === 10);
+
+// P8b: ยกเลิกบางแถวในใบ (partial void)
+const pvA = await pgstore.addProduct({ name: 'แถวA', category: 'x', stock: 100 });
+const pvB = await pgstore.addProduct({ name: 'แถวB', category: 'x', stock: 200 });
+const pvTx = await pgstore.commit({ items: [{ productId: pvA.id, quantity: 10 }, { productId: pvB.id, quantity: 5 }], type: 'deduct' });
+let pv = await pgstore.voidTransactionItem(pvTx.id, 0, 'แอน');
+check('void แถว 0 คืนเฉพาะ A (90→100)', (await pgstore.getProduct(pvA.id)).stock === 100);
+check('void แถว 0 ไม่แตะ B (=195)', (await pgstore.getProduct(pvB.id)).stock === 195);
+check('ใบยังไม่ถือว่ายกเลิกทั้งใบ', pv.voided === false && pv.items[0].voided === true && pv.items[0].voidedBy === 'แอน');
+pv = await pgstore.voidTransactionItem(pvTx.id, 0, 'แอน'); // ซ้ำ
+check('void แถวซ้ำ ไม่คืนสต๊อกซ้ำ', (await pgstore.getProduct(pvA.id)).stock === 100);
+pv = await pgstore.voidTransactionItem(pvTx.id, 1, 'แอน');
+check('ครบทุกแถว → ทั้งใบถูกยกเลิก', pv.voided === true && (await pgstore.getProduct(pvB.id)).stock === 200);
+
+// P8b: void ทั้งใบหลังยกเลิกบางแถวไปแล้ว → คืนเฉพาะแถวที่เหลือ
+const pwTx = await pgstore.commit({ items: [{ productId: pvA.id, quantity: 4 }, { productId: pvB.id, quantity: 6 }], type: 'deduct' });
+await pgstore.voidTransactionItem(pwTx.id, 0);
+await pgstore.voidTransaction(pwTx.id);
+check('void ทั้งใบหลัง partial: A คืนรอบเดียว (=100)', (await pgstore.getProduct(pvA.id)).stock === 100);
+check('void ทั้งใบหลัง partial: B คืนถูก (=200)', (await pgstore.getProduct(pvB.id)).stock === 200);
+
 console.log(`\n  ผลทดสอบ PG: ผ่าน ${pass} / ไม่ผ่าน ${fail}`);
 process.exit(fail ? 1 : 0);

@@ -1189,6 +1189,75 @@ $('#btn-line-test').addEventListener('click', async () => {
   }
 });
 
+// ---------- นำเข้ายอดจากไฟล์ CSV (คอลัมน์ 1 = ชื่อในระบบ, คอลัมน์ 2 = ยอดนับได้) ----------
+// แยกบรรทัด CSV เป็นช่อง (รองรับช่องที่ครอบด้วย " และมี ,)
+function parseCSVLine(line) {
+  const out = [];
+  let cur = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) {
+      if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ',') { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map((s) => s.trim());
+}
+
+$('#import-csv').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = ''; // ให้เลือกไฟล์เดิมซ้ำได้
+  if (!file) return;
+  let text = await file.text();
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // ตัด BOM
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
+  if (lines.length < 2) { alert('ไฟล์ว่างหรือมีแต่หัวตาราง'); return; }
+
+  const byName = new Map(PRODUCTS.map((p) => [p.name.trim(), p]));
+  const items = [];     // { productId, counted }
+  const changes = [];   // ข้อความสรุปการเปลี่ยน
+  const notFound = [];
+  let same = 0;
+  for (let i = 1; i < lines.length; i++) { // ข้ามหัวตาราง
+    const f = parseCSVLine(lines[i]);
+    const name = (f[0] || '').trim();
+    const raw = (f[1] || '').trim();
+    if (!name || raw === '' || !/^-?\d+(\.\d+)?$/.test(raw)) continue; // เว้นว่าง/ไม่มีเลข = ข้าม
+    const counted = Math.round(Number(raw));
+    const p = byName.get(name);
+    if (!p) { notFound.push(name); continue; }
+    if ((Number(p.stock) || 0) === counted) { same++; continue; }
+    items.push({ productId: p.id, counted });
+    changes.push(`${p.name}: ${p.stock} → ${counted}`);
+  }
+
+  if (!items.length && !notFound.length) { alert('ไม่พบรายการที่ต้องอัปเดต (ยอดตรงกับระบบทั้งหมด)'); return; }
+  let msg = `จะปรับยอด ${items.length} รายการ`;
+  if (same) msg += ` (ตรงกับระบบอยู่แล้ว ${same})`;
+  if (notFound.length) msg += `\n⚠️ ไม่พบชื่อในระบบ ${notFound.length} รายการ (จะข้าม):\n• ` + notFound.slice(0, 12).join('\n• ') + (notFound.length > 12 ? `\n…และอีก ${notFound.length - 12}` : '');
+  if (changes.length) msg += `\n\nตัวอย่างที่จะเปลี่ยน:\n` + changes.slice(0, 12).join('\n') + (changes.length > 12 ? `\n…และอีก ${changes.length - 12}` : '');
+  if (!items.length) { alert(msg + '\n\nไม่มีรายการที่จับคู่ได้'); return; }
+  if (!confirm(msg + '\n\nยืนยันปรับยอดตามไฟล์?')) return;
+
+  try {
+    const out = await api('/api/stocktake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, actor: localStorage.getItem('stockmtt.actor') || '' }),
+    });
+    PRODUCTS = out.products;
+    renderStock();
+    updateLowBadge();
+    renderReorderBanner();
+    showToast(out.transaction ? `นำเข้าแล้ว ${out.transaction.items.length} รายการ` : 'ไม่มีอะไรเปลี่ยน');
+  } catch (err) {
+    alert('นำเข้าไม่สำเร็จ: ' + err.message);
+  }
+});
+
 // สำรองข้อมูลทั้งหมดเป็นไฟล์ JSON (เก็บไว้กันฐานข้อมูลมีปัญหา)
 $('#btn-backup').addEventListener('click', async () => {
   const btn = $('#btn-backup');

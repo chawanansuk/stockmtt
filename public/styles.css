@@ -105,7 +105,8 @@ button.primary:active { background: var(--primary-d); }
 button.primary:disabled { opacity: 0.5; }
 button.big { padding: 16px; font-size: 17px; }
 
-button.ghost {
+button.ghost, label.import-btn {
+  display: block;
   width: 100%;
   margin: 6px 0 14px;
   padding: 11px;
@@ -115,6 +116,8 @@ button.ghost {
   color: var(--primary);
   font-size: 15px;
   cursor: pointer;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .status { margin: 10px 0 0; color: var(--muted); font-size: 14px; min-height: 18px; }
